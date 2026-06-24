@@ -412,6 +412,27 @@ function intensityToStrength(intensity?: string): number {
   }
 }
 
+// ─── Output resolution — controlled by transformIntensity ─────────────────────
+//
+// La résolution de SORTIE dépend de l'intensité choisie (et non plus seulement
+// du plan), afin de réduire le coût des rendus doux. Le modèle de génération
+// (google/nano-banana-pro) ne change pas : seul le paramètre `resolution` varie.
+//
+//   light / moderate (Légère / Modérée) → plafonnée à 2K, jamais 4K → moins cher
+//   strong / ultra   (Intense / Ultra)  → 4K
+function intensityToResolution(tierResolution: string, intensity?: string): string {
+  switch (intensity) {
+    case "strong":
+    case "ultra":
+      return "4K";
+    case "light":
+    case "moderate":
+    default:
+      // Ne jamais dépasser 2K pour les intensités douces (4K → 2K).
+      return tierResolution === "4K" ? "2K" : tierResolution;
+  }
+}
+
 // ─── FRENCH → ENGLISH TRANSLATOR ─────────────────────────────────────────────
 
 function translateToEnglish(text: string): string {
@@ -631,7 +652,7 @@ export function buildAsyncJobConfig(
     inputImageUrl:      input.inputImageUrl,
     strength:           intensityToStrength(input.transformIntensity),
     modelIndex:         0,
-    resolution:         qs.resolution,
+    resolution:         intensityToResolution(qs.resolution, input.transformIntensity),
     outputFormat:       qs.format,
     allowFallback:      qs.allowFallback,
     celebRefImageUrl:   clippedRefUrls[0],
