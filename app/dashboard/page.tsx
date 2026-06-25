@@ -695,6 +695,36 @@ export default function DashboardPage() {
       formData.append("mode",           "video");
     }
 
+    // ── Comptes gratuits : aperçu simulé (aucune vraie génération) ───────────
+    // On ne touche pas à Replicate ni aux crédits : fausse attente de 3 s, puis
+    // on affiche la photo uploadée — automatiquement floutée + CTA paiement
+    // (le rendu gère déjà blur + LockedOverlay quand !isPaid).
+    const paidPlan = isPaidPlan(stats?.plan);
+    const previewFile = genType === "swapface" ? swapTgtFile : styleFile;
+    if (!paidPlan && genType !== "video" && previewFile) {
+      setIsGenerating(true);
+      setGenProgress(0);
+      cancelRef.current = false;
+      const fakeIv = simulateProgress();
+      const previewUrl = URL.createObjectURL(previewFile);
+
+      await new Promise((r) => setTimeout(r, 3000));
+      clearInterval(fakeIv);
+
+      if (cancelRef.current) {
+        URL.revokeObjectURL(previewUrl);
+        setIsGenerating(false);
+        toast("Génération annulée", { icon: "🛑" });
+        return;
+      }
+
+      setGenProgress(100);
+      setResultUrl(previewUrl);
+      setResultStyle(selectedStyle?.label ?? "");
+      setIsGenerating(false);
+      return;
+    }
+
     setIsGenerating(true);
     setGenProgress(0);
     cancelRef.current = false;
@@ -1978,7 +2008,9 @@ export default function DashboardPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-6">
                     {PLANS_DATA.map((plan,i)=>{
                       const Icon       = plan.icon;
-                      const isCurrent  = userPlanTier(stats?.plan) === plan.id;
+                      // Un compte gratuit n'a AUCUN plan actif : userPlanTier('free')
+                      // retourne "essentiel" par défaut, donc on exige un plan payant.
+                      const isCurrent  = isPaid && userPlanTier(stats?.plan) === plan.id;
                       return (
                         <motion.div key={plan.id} initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:i*0.1}}
                           className={`card border ${plan.color} relative flex flex-col ${isCurrent ? "ring-2 ring-offset-2 ring-offset-background " + plan.color.replace("border-","ring-") : ""}`}>

@@ -68,23 +68,26 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signUp({
+      // 1. Création du compte côté serveur avec email déjà confirmé
+      //    (aucun email de confirmation à valider).
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "Erreur lors de l'inscription");
+
+      // 2. Connexion immédiate → session active.
+      const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
-      if (error) throw error;
+      if (signInError) throw signInError;
 
-      // Confirmation email désactivée côté Supabase → l'utilisateur reçoit
-      // directement une session et est connecté immédiatement.
-      if (data.session) {
-        toast.success("Compte créé ! Bienvenue 🎉");
-        router.push("/dashboard");
-      } else {
-        // Sécurité : si la confirmation email est encore activée côté Supabase,
-        // on renvoie vers la connexion sans bloquer.
-        toast.success("Compte créé ! Vous pouvez vous connecter.");
-        router.push("/login");
-      }
+      // 3. Redirection directe vers le dashboard, compte connecté.
+      toast.success("Compte créé ! Bienvenue 🎉");
+      router.push("/dashboard");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Erreur lors de l'inscription";
       toast.error(msg);
