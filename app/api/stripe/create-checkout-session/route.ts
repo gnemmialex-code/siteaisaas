@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
       mode: "subscription",
       payment_method_types: ["card"],
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${origin}/dashboard?payment=success`,
+      success_url: `${origin}/dashboard?payment=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url:  `${origin}/pricing?payment=cancelled`,
       metadata: {
         user_id: user.id,

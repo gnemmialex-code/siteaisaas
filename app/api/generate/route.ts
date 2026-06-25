@@ -109,9 +109,16 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Restrictions par plan ──────────────────────────────────────────────────
-  if (mode === "video" && (qualityTier === "free" || qualityTier === "essentiel")) {
+  // Vidéo IA : plan Ultra uniquement. SwapFace : plan Pro ou Ultra.
+  if (mode === "video" && qualityTier !== "ultra") {
     return NextResponse.json(
-      { error: "La génération vidéo est réservée aux plans Pro et Elite. Passez à Pro pour y accéder.", upgrade: true },
+      { error: "La génération vidéo est réservée au plan Ultra. Passez à Ultra pour y accéder.", upgrade: true },
+      { status: 403 }
+    );
+  }
+  if (mode === "swapface" && qualityTier !== "pro" && qualityTier !== "ultra") {
+    return NextResponse.json(
+      { error: "Le SwapFace est réservé aux plans Pro et Ultra. Passez à Pro pour y accéder.", upgrade: true },
       { status: 403 }
     );
   }

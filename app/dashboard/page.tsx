@@ -460,6 +460,27 @@ export default function DashboardPage() {
       toast.success("🔥 Paiement reçu ! Votre accès Snap Rouge s'active dans quelques secondes…", { duration: 6000 });
       setTimeout(() => fetchStats(), 4000);
     }
+    // Retour de paiement abonnement/crédits : filet de sécurité indépendant du webhook.
+    if (params.get("payment") === "success") {
+      const sessionId = params.get("session_id");
+      if (sessionId) {
+        toast.loading("Validation de votre paiement…", { id: "pay-confirm" });
+        fetch("/api/stripe/confirm", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId }),
+        })
+          .then((r) => r.json())
+          .then(() => { toast.success("Paiement validé ! Plan activé 🎉", { id: "pay-confirm" }); return fetchStats(); })
+          .catch(() => toast.error("Paiement reçu — actualisation en cours…", { id: "pay-confirm" }))
+          .finally(() => {
+            // Nettoie l'URL pour éviter une re-confirmation au rechargement
+            window.history.replaceState({}, "", "/dashboard");
+          });
+      } else {
+        setTimeout(() => fetchStats(), 3000);
+      }
+    }
 
     supabase.auth.getUser().then(async ({ data }) => {
       setUserEmail(data.user?.email ?? null);
@@ -1029,13 +1050,22 @@ export default function DashboardPage() {
                       {GEN_TABS.map(tab => {
                         const Icon    = tab.icon;
                         const active  = genType === tab.id;
-                        const isVideoLocked = tab.id === "video" && userPlanTier(stats?.plan) === "essentiel";
+                        const tier    = userPlanTier(stats?.plan);
+                        // SwapFace : Pro ou Ultra. Vidéo IA : Ultra uniquement.
+                        const isSwapLocked  = tab.id === "swapface" && tier !== "pro" && tier !== "elite";
+                        const isVideoLocked = tab.id === "video"    && tier !== "elite";
+                        const isLocked      = isSwapLocked || isVideoLocked;
+                        const lockBadge     = tab.id === "video" ? "Ultra" : "Pro";
                         return (
                           <motion.button
                             key={tab.id}
                             onClick={() => {
                               if (isVideoLocked) {
-                                toast("La vidéo est disponible à partir du plan Pro ⚡", { icon: "🔒" });
+                                toast("La Vidéo IA est réservée au plan Ultra 🔒", { icon: "🔒" });
+                                return;
+                              }
+                              if (isSwapLocked) {
+                                toast("Le SwapFace est disponible à partir du plan Pro 🔒", { icon: "🔒" });
                                 return;
                               }
                               setGenType(tab.id); setError(null);
@@ -1043,28 +1073,28 @@ export default function DashboardPage() {
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             className={`relative flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all overflow-hidden ${
-                              isVideoLocked
+                              isLocked
                                 ? "text-white/25 cursor-not-allowed"
                                 : active
                                 ? "bg-accent-violet text-white shadow-violet"
                                 : "text-white/45 hover:text-white"
                             }`}
                           >
-                            {active && !isVideoLocked && (
+                            {active && !isLocked && (
                               <motion.div
                                 className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
                                 animate={{ x: ["-120%", "220%"] }}
                                 transition={{ duration: 1.5, repeat: Infinity, ease: "linear", repeatDelay: 0.5 }}
                               />
                             )}
-                            {isVideoLocked ? (
+                            {isLocked ? (
                               <Lock className="w-3.5 h-3.5 relative z-10 flex-shrink-0" />
                             ) : (
                               <Icon className="w-3.5 h-3.5 relative z-10 flex-shrink-0" />
                             )}
                             <span className="relative z-10 hidden sm:inline">{tab.label}</span>
-                            {isVideoLocked && (
-                              <span className="relative z-10 hidden sm:inline text-[9px] font-bold text-accent-violet/70 bg-accent-violet/10 border border-accent-violet/20 px-1 rounded ml-0.5">Pro+</span>
+                            {isLocked && (
+                              <span className="relative z-10 hidden sm:inline text-[9px] font-bold text-accent-violet/70 bg-accent-violet/10 border border-accent-violet/20 px-1 rounded ml-0.5">{lockBadge}</span>
                             )}
                           </motion.button>
                         );
