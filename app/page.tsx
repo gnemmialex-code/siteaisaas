@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useRef } from "react";
+import { motion, AnimatePresence, useInView } from "framer-motion";
+import Image from "next/image";
 import Link from "next/link";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
@@ -36,13 +37,15 @@ const REVIEWS = [
 
 // Pour les exemples : mets tes vraies images dans /public/examples/
 // Format : { style, before: "/examples/before1.jpg", after: "/examples/after1.jpg" }
+// `mobile: true` = visible sur téléphone ; `mobileFirst` = affiché en premier sur téléphone.
+// Sur ordinateur (sm+), tous les exemples restent visibles dans l'ordre du tableau.
 const EXAMPLES_IMAGES = [
-  { style: "Scarlett Johansson", before: "/examples/scarlett_johansson_avant.png", after: "/examples/scarlett_johansson_apres.png" },
-  { style: "Mia Khalifa",   before: "/examples/mia_avant.png" , after: "/examples/mia_apres.png" },
-  { style: "Leonardo DiCaprio",          before: "/examples/leonardo_dicaprio_avant.png", after: "/examples/leonardo_dicaprio_apres.png" },
-  { style: "Denzel Washington",       before: "/examples/denzel_avant.png", after: "/examples/denzel_apres.png" },
-  { style: "Johnny Sins",      before: "/examples/johnny_avant.png", after: "/examples/johnny_apres.png" },
-  { style: "Kylian Mbappé",      before: "/examples/kylian_avant.png", after: "/examples/kylian_apres.png" },
+  { style: "Scarlett Johansson", before: "/examples/scarlett_johansson_avant.png", after: "/examples/scarlett_johansson_apres.png", mobile: false, mobileFirst: false },
+  { style: "Mia Khalifa",   before: "/examples/mia_avant.png" , after: "/examples/mia_apres.png", mobile: true, mobileFirst: false },
+  { style: "Leonardo DiCaprio",          before: "/examples/leonardo_dicaprio_avant.png", after: "/examples/leonardo_dicaprio_apres.png", mobile: false, mobileFirst: false },
+  { style: "Denzel Washington",       before: "/examples/denzel_avant.png", after: "/examples/denzel_apres.png", mobile: false, mobileFirst: false },
+  { style: "Johnny Sins",      before: "/examples/johnny_avant.png", after: "/examples/johnny_apres.png", mobile: false, mobileFirst: false },
+  { style: "Kylian Mbappé",      before: "/examples/kylian_avant.png", after: "/examples/kylian_apres.png", mobile: true, mobileFirst: true },
 
 ];
 
@@ -54,8 +57,8 @@ const EXAMPLES_VIDEOS = [
 ];
 
 // ─── VIDÉO DÉMO (section sous le hero) ──────────────────────────────────────
-// Version mobile (verticale), dans /public/videos/.
-const DEMO_VIDEO = "/videos/tuto-astra-vertical.mp4";
+// Version PC (horizontale), affichée sur ordinateur ET téléphone.
+const DEMO_VIDEO = "/videos/tuto-astra-horizontal.mp4";
 
 const FAQ_ITEMS = [
   {
@@ -78,18 +81,17 @@ const FAQ_ITEMS = [
 
 // ─── COMPOSANTS INTERNES ────────────────────────────────────────────────────
 
-// ── Ligne 1 : img01.jpg → img20.jpg  (défile vers la gauche)
-// ── Ligne 2 : img21.jpg → img40.jpg  (défile vers la droite)
-// Mets tes 40 images dans /public/hero-gallery/ avec ce nommage.
-// Formats acceptés : jpg, jpeg, png, webp — remplace l'extension si besoin.
+// Images du fond du hero, dans /public/hero-gallery/.
+// Les premières de chaque liste sont celles visibles à l'ouverture du site
+// (ligne 1 défile vers la gauche, ligne 2 vers la droite).
 const ROW1 = [
-  ...Array.from({ length: 4 }, (_, i) => `/hero-gallery/img${String(i + 11).padStart(2, "0")}.png`),
-  ...Array.from({ length: 10 }, (_, i) => `/hero-gallery/img${String(i + 1).padStart(2, "0")}.png`),
-];
+  "img35", "img36", "img37", "img38", "img39", "img40",
+  "img11", "img12", "img13", "img14", "img02", "img09",
+].map(n => `/hero-gallery/${n}.png`);
 const ROW2 = [
-  ...Array.from({ length: 4 }, (_, i) => `/hero-gallery/img${String(i + 31).padStart(2, "0")}.png`),
-  ...Array.from({ length: 10 }, (_, i) => `/hero-gallery/img${String(i + 21).padStart(2, "0")}.png`),
-];
+  "img41", "img42", "img43", "img44", "img45", "img46",
+  "img31", "img32", "img33", "img21", "img23", "img24", "img25", "img27",
+].map(n => `/hero-gallery/${n}.png`);
 
 function ImageRow({
   images,
@@ -112,12 +114,13 @@ function ImageRow({
             className="flex-shrink-0 rounded-xl overflow-hidden"
             style={{ width: 300, height: 500 }}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <Image
               src={src}
               alt=""
+              width={300}
+              height={500}
+              priority={i < 3}
               loading={i < 5 ? "eager" : "lazy"}
-              decoding="async"
               className="w-full h-full object-cover"
               onError={(e) => {
                 // Cache la cellule si l'image n'existe pas encore
@@ -257,7 +260,7 @@ function ExamplesGallery() {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: i * 0.06 }}
-                className="group relative rounded-2xl overflow-hidden border border-surface-border hover:border-accent-violet/50 transition-all duration-300" style={{ aspectRatio: "9/16" }}
+                className={`group relative rounded-2xl overflow-hidden border border-surface-border hover:border-accent-violet/50 transition-all duration-300 ${ex.mobile ? "" : "hidden sm:block"} ${ex.mobileFirst ? "order-first sm:order-none" : ""}`} style={{ aspectRatio: "9/16" }}
               >
                 {ex.before && ex.after ? (
                   <BeforeAfterSlider before={ex.before} after={ex.after} alt={ex.style} />
@@ -343,6 +346,10 @@ function ExamplesGallery() {
 // ─── SECTION VIDÉO DÉMO ─────────────────────────────────────────────────────
 
 function DemoVideoSection() {
+  // La vidéo (~7 Mo) n'est montée que lorsque la section approche de l'écran
+  const videoZoneRef = useRef<HTMLDivElement>(null);
+  const videoInView  = useInView(videoZoneRef, { once: true, margin: "300px" });
+
   return (
     <section id="demo" className="py-24 px-4 sm:px-6 relative overflow-hidden">
       {/* Orbes décoratifs */}
@@ -384,24 +391,26 @@ function DemoVideoSection() {
         >
           {/* Lecture auto en boucle dès le chargement,
               impossible à mettre en pause ou télécharger. */}
-          <div className="mx-auto max-w-sm">
+          <div className="mx-auto max-w-4xl" ref={videoZoneRef}>
             <div className="relative rounded-3xl overflow-hidden border border-surface-border bg-surface shadow-violet select-none">
               {/* Liseré dégradé */}
               <div className="absolute inset-0 rounded-3xl pointer-events-none z-10" style={{ boxShadow: "inset 0 0 0 1px rgba(138,43,226,0.25)" }} />
-              <div className="relative bg-surface-hover" style={{ aspectRatio: "9/16" }}>
-                <video
-                  src={DEMO_VIDEO}
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                  preload="metadata"
-                  disablePictureInPicture
-                  controlsList="nodownload noplaybackrate"
-                  onContextMenu={e => e.preventDefault()}
-                  onPause={e => { e.currentTarget.play().catch(() => {}); }}
-                  className="w-full h-full object-cover absolute inset-0 pointer-events-none"
-                />
+              <div className="relative bg-surface-hover" style={{ aspectRatio: "16/9" }}>
+                {videoInView && (
+                  <video
+                    src={DEMO_VIDEO}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    preload="metadata"
+                    disablePictureInPicture
+                    controlsList="nodownload noplaybackrate"
+                    onContextMenu={e => e.preventDefault()}
+                    onPause={e => { e.currentTarget.play().catch(() => {}); }}
+                    className="w-full h-full object-cover absolute inset-0 pointer-events-none"
+                  />
+                )}
               </div>
             </div>
           </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Check, Zap, Loader2, Sparkles, Crown, Infinity as InfinityIcon, ShieldCheck, Plus } from "lucide-react";
@@ -27,7 +27,6 @@ const PLANS = [
     features: [
       "Génération photo uniquement",
       "Qualité HD 1080p",
-      "10 styles disponibles",
       "Vitesse standard (~45-60 secondes)",
       "File d'attente partagée",
       "Historique limité (30 images)",
@@ -44,7 +43,7 @@ const PLANS = [
     creditsRaw: 10250,
     bonusCredits: 1000,
     priceMonthly: 19.90,
-    color: "border-accent-violet",
+    color: "border-surface-border",
     badge: "Populaire",
     tagline: "Pour créer plus & mieux",
     highlights: [
@@ -56,7 +55,6 @@ const PLANS = [
       "Photo + Vidéo jusqu'à 5 secondes",
       "Qualité Ultra 4K (upscale x4)",
       "🔥 Technique Snap Rouge incluse",
-      "20+ styles + 5 styles exclusifs Pro",
       "Vitesse prioritaire (~20-30 secondes)",
       "File d'attente accélérée",
       "Historique illimité",
@@ -85,14 +83,12 @@ const PLANS = [
       "Photo + Vidéo 4K jusqu'à 30 secondes",
       "Qualité Ultra 8K — Photoréalisme maximum",
       "🔥 Technique Snap Rouge incluse",
-      "Tous les styles + styles exclusifs Elite",
       "Vitesse ultra (~10-15 secondes)",
       "Priorité absolue — jamais d'attente",
       "Licence commerciale incluse",
       "API illimitée (sans restriction)",
       "Accès bêta en avant-première",
       "Manager de compte dédié",
-      "Styles personnalisés sur demande",
       "Support VIP dédié (réponse < 4h)",
     ],
   },
@@ -153,6 +149,17 @@ export default function PricingPage() {
   const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [loadingPack, setLoadingPack] = useState<string | null>(null);
+
+  /* Mobile : la formule face à l'écran s'agrandit (via whileInView).
+     Desktop : agrandissement au survol de la souris (via whileHover). */
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
 
   const handleTopup = async (packId: string) => {
     setLoadingPack(packId);
@@ -227,6 +234,13 @@ export default function PricingPage() {
           animate={{ x: [0, 40, -30, 0], y: [0, -40, 20, 0], scale: [1, 1.15, 0.92, 1] }}
           transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 4 }}
         />
+        {/* Orbe rose supplémentaire — centre */}
+        <motion.div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] rounded-full bg-pink-500/6 blur-[80px]"
+          animate={{ scale: [1, 1.5, 0.9, 1], opacity: [0.4, 0.9, 0.5, 0.4] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+        />
+
         {/* Particules flottantes */}
         {[
           { x: "10%",  y: "15%", r: 3, dur: 4.2, delay: 0   },
@@ -235,13 +249,42 @@ export default function PricingPage() {
           { x: "75%",  y: "45%", r: 2, dur: 6.0, delay: 2.1 },
           { x: "55%",  y: "80%", r: 3, dur: 4.6, delay: 0.9 },
           { x: "40%",  y: "25%", r: 2, dur: 5.5, delay: 1.7 },
+          { x: "5%",   y: "45%", r: 2, dur: 4.9, delay: 2.8 },
+          { x: "93%",  y: "65%", r: 3, dur: 5.7, delay: 0.4 },
+          { x: "18%",  y: "88%", r: 2, dur: 4.4, delay: 1.9 },
+          { x: "65%",  y: "12%", r: 3, dur: 5.3, delay: 3.2 },
+          { x: "35%",  y: "72%", r: 2, dur: 6.3, delay: 0.2 },
+          { x: "82%",  y: "30%", r: 4, dur: 4.0, delay: 2.5 },
         ].map((p, i) => (
           <motion.div
             key={i}
             className="absolute rounded-full bg-accent-violet/60"
-            style={{ left: p.x, top: p.y, width: p.r * 2, height: p.r * 2 }}
+            style={{ left: p.x, top: p.y, width: p.r * 2, height: p.r * 2, boxShadow: "0 0 8px rgba(138,43,226,0.7)" }}
             animate={{ y: [0, -20, 0], opacity: [0.2, 0.8, 0.2] }}
             transition={{ duration: p.dur, repeat: Infinity, ease: "easeInOut", delay: p.delay }}
+          />
+        ))}
+
+        {/* Particules qui montent du bas de l'écran */}
+        {Array.from({ length: 26 }, (_, i) => ({
+          left: `${(i * 41 + 7) % 100}%`,
+          size: 1.5 + ((i * 7) % 3),
+          dur: 7 + ((i * 13) % 9),
+          delay: (i * 1.9) % 10,
+          violet: i % 3 !== 0,
+        })).map((p, i) => (
+          <span
+            key={`rise-${i}`}
+            className={`absolute rounded-full ${p.violet ? "bg-accent-violet" : "bg-white"}`}
+            style={{
+              left: p.left,
+              bottom: -8,
+              width: p.size,
+              height: p.size,
+              opacity: 0,
+              boxShadow: p.violet ? "0 0 6px rgba(138,43,226,0.9)" : "0 0 6px rgba(255,255,255,0.7)",
+              animation: `particle-rise ${p.dur}s linear ${p.delay}s infinite`,
+            }}
           />
         ))}
       </div>
@@ -292,7 +335,7 @@ export default function PricingPage() {
         </motion.div>
 
         {/* Plans */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+        <div className="plans-grid grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
           {PLANS.map((plan, i) => {
             const monthlyPrice = plan.priceMonthly;
             const yearlyTotal = +(monthlyPrice * 12 * 0.83).toFixed(2);
@@ -301,16 +344,50 @@ export default function PricingPage() {
             const displayPrice = billing === "monthly" ? monthlyPrice : yearlyPerMonth;
             const displayTotal = billing === "yearly" ? yearlyTotal : null;
 
+            const isPro   = plan.badge === "Populaire";
+            const isElite = plan.name === "Elite";
+
+            const baseScale  = isPro ? 1.06 : 1;
+            const grownScale = isPro ? 1.11 : 1.05;
+
             return (
               <motion.div
                 key={plan.id}
                 initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1 }}
-                className={`relative card border-2 ${plan.color} flex flex-col ${
-                  plan.badge === "Populaire" ? "shadow-violet scale-[1.02]" : ""
+                animate={{ opacity: 1, y: 0, scale: baseScale }}
+                whileHover={{ scale: grownScale }}
+                {...(isMobile ? { whileInView: { scale: grownScale }, viewport: { amount: 0.6 } } : {})}
+                transition={{ delay: i * 0.1, scale: { delay: 0, duration: 0.25 } }}
+                className={`plan-card relative card border-2 ${plan.color} flex flex-col bg-surface ${
+                  isPro ? "z-10" : ""
                 }`}
               >
+                {/* Étincelles qui s'échappent du haut de la carte (Pro : vertes, Elite : or) */}
+                {(isPro || isElite) && (
+                  <div className="absolute top-0 left-0 right-0 h-0 pointer-events-none">
+                    {Array.from({ length: 10 }, (_, k) => ({
+                      left: `${((k * 11 + 8) % 88) + 6}%`,
+                      size: 2 + (k % 3),
+                      dur: 2.2 + ((k * 7) % 20) / 10,
+                      delay: (k * 0.6) % 3,
+                    })).map((s, k) => (
+                      <span
+                        key={k}
+                        className="absolute rounded-full"
+                        style={{
+                          left: s.left,
+                          top: -2,
+                          width: s.size,
+                          height: s.size,
+                          background: isPro ? "#39ff14" : "#ffd700",
+                          boxShadow: `0 0 6px ${isPro ? "rgba(57,255,20,0.9)" : "rgba(255,215,0,0.9)"}`,
+                          opacity: 0,
+                          animation: `sparkle-up ${s.dur}s ease-out ${s.delay}s infinite`,
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
                 {plan.badge && (
                   <div className={`absolute -top-3 left-1/2 -translate-x-1/2 text-white text-xs px-4 py-1 rounded-full font-bold whitespace-nowrap ${
                     plan.badge === "Populaire" ? "bg-accent-violet" : "bg-gradient-violet-neon"
@@ -328,14 +405,14 @@ export default function PricingPage() {
                   }`}>
                     {plan.icon}
                   </div>
-                  <h3 className="text-xl font-bold">{plan.name}</h3>
+                  <h3 className={`text-xl font-bold ${(isPro || isElite) ? "violetblue-shimmer-text" : ""}`}>{plan.name}</h3>
                 </div>
                 <p className="text-white/40 text-xs mb-5">{plan.tagline}</p>
 
                 {/* Prix */}
                 <div className="mb-2">
                   <div className="flex items-end gap-1">
-                    <span className="text-4xl font-black">{formatPrice(displayPrice)}</span>
+                    <span className={`text-4xl font-black ${isPro ? "violetblue-shimmer-text" : ""}`}>{formatPrice(displayPrice)}</span>
                     <span className="text-white/40 text-sm mb-1">/mois</span>
                   </div>
                   {displayTotal && (
@@ -350,7 +427,7 @@ export default function PricingPage() {
                   {plan.creditsRaw === null ? (
                     <div className="flex items-center justify-center gap-2">
                       <InfinityIcon className="w-8 h-8 text-accent-violet" />
-                      <span className="text-2xl font-black gradient-text">Illimité</span>
+                      <span className="text-2xl font-black violetblue-shimmer-text">Illimité</span>
                     </div>
                   ) : (
                     <span className="text-4xl font-black gradient-text">{plan.credits}</span>
@@ -370,18 +447,18 @@ export default function PricingPage() {
                 <div className="grid grid-cols-3 gap-2 mb-5">
                   {plan.highlights.map((h) => (
                     <div key={h.label} className="bg-surface-hover rounded-lg px-2 py-2 text-center">
-                      <p className="text-white/35 text-[10px] uppercase tracking-wide mb-0.5">{h.label}</p>
-                      <p className={`text-xs font-bold leading-tight ${
-                        plan.name === "Elite" ? "text-accent-neon" : "text-accent-violet"
-                      }`}>{h.value}</p>
+                      <p className="text-white/80 text-[10px] uppercase tracking-wide mb-0.5">{h.label}</p>
+                      <p className="text-xs font-bold leading-tight text-white">{h.value}</p>
                     </div>
                   ))}
                 </div>
 
-                {/* Features */}
+                {/* Features — les 3 premières = différences majeures, en blanc et plus grandes */}
                 <ul className="space-y-2 mb-8 flex-1">
-                  {plan.features.map((feature) => (
-                    <li key={feature} className="flex items-start gap-2 text-sm text-white/70">
+                  {plan.features.map((feature, fi) => (
+                    <li key={feature} className={`flex items-start gap-2 ${
+                      fi < 3 ? "text-[15px] text-white font-bold" : "text-sm text-white/60"
+                    }`}>
                       <Check className={`w-4 h-4 flex-shrink-0 mt-0.5 ${
                         plan.name === "Elite" ? "text-accent-neon" : "text-accent-violet"
                       }`} />

@@ -10,6 +10,7 @@ const nextConfig: NextConfig = {
     "/api/snap-rouge/video": ["./private-videos/**"],
   },
   images: {
+    formats: ["image/avif", "image/webp"],
     remotePatterns: [
       {
         protocol: "https",

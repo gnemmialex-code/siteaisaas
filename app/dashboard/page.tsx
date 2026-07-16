@@ -10,7 +10,7 @@ import {
   Sparkles, Download, Trash2, Zap, Plus, LogOut,
   Shuffle, Film, Crown, Settings, History,
   ChevronRight, ChevronLeft, ChevronDown, Check, Star, Replace, PlusCircle, AlertCircle, StopCircle, Lock,
-  Gift, Flame, Copy, LogIn, UserPlus, Users, Loader2, ExternalLink,
+  Gift, Flame, Copy, LogIn, UserPlus, Users, Loader2, ExternalLink, Clock,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { isPaidPlan } from "@/lib/plan";
@@ -279,32 +279,87 @@ const NAV_ITEMS = [
 
 const GEN_TABS: { id: GenType; label: string; icon: React.ElementType }[] = [
   { id: "create",   label: "Créer",    icon: Sparkles },
-  { id: "swapface", label: "SwapFace", icon: Shuffle  },
   { id: "video",    label: "Vidéo IA", icon: Film     },
 ];
 
+// features : `strong: true` = différence majeure (vitesse, qualité, crédits…) affichée en blanc et en gras
 const PLANS_DATA = [
   {
     id: "essentiel", name: "Essentiel", icon: Zap,   price: "9,90€",  credits: "2 500",
     color: "border-surface-border", badgeBg: "bg-white/10", badgeText: "text-white/60",
     highlights: [{ k: "Qualité", v: "HD 1080p" }, { k: "Vitesse", v: "~45-60s" }, { k: "Vidéo", v: "Non" }],
-    features: ["Photo uniquement (pas de vidéo)", "Qualité HD 1080p", "8 styles disponibles", "Historique 20 images", "Support standard 48-72h"],
+    features: [
+      { t: "Qualité HD 1080p", strong: true },
+      { t: "2 500 crédits/mois", strong: true },
+      { t: "Vitesse standard ~45-60s", strong: true },
+      { t: "Photo uniquement (pas de vidéo, pas de SwapFace)" },
+      { t: "8 styles disponibles" },
+      { t: "Historique conservé 72h" },
+      { t: "Support standard 48-72h" },
+    ],
   },
   {
     id: "pro",        name: "Pro",        icon: Star,  price: "19,90€", credits: "10 250",
-    color: "border-accent-violet", badgeBg: "bg-accent-violet/20", badgeText: "text-accent-violet",
+    color: "border-surface-border", badgeBg: "bg-accent-violet/20", badgeText: "text-accent-violet",
     badge: "Populaire",
     highlights: [{ k: "Qualité", v: "Ultra 4K" }, { k: "Vitesse", v: "~20-30s" }, { k: "Vidéo", v: "5s" }],
-    features: ["Photo + Vidéo jusqu'à 5s", "Qualité Ultra 4K", "🔥 Technique Snap Rouge incluse", "13 styles dont 5 exclusifs Pro", "Historique 100 images", "Support prioritaire 24h"],
+    features: [
+      { t: "Qualité Ultra 4K", strong: true },
+      { t: "10 250 crédits/mois", strong: true },
+      { t: "Vitesse rapide ~20-30s", strong: true },
+      { t: "Photo + SwapFace + Vidéo jusqu'à 5s", strong: true },
+      { t: "🔥 Technique Snap Rouge incluse" },
+      { t: "13 styles dont 5 exclusifs Pro" },
+      { t: "Historique conservé 72h" },
+      { t: "Support prioritaire 24h" },
+    ],
   },
   {
     id: "elite",      name: "Elite",      icon: Crown, price: "39,90€", credits: "Illimité",
     color: "border-amber-400/50", badgeBg: "bg-amber-400/20", badgeText: "text-amber-400",
     badge: "Elite",
     highlights: [{ k: "Qualité", v: "8K Photo" }, { k: "Vitesse", v: "~10-15s" }, { k: "Vidéo", v: "30s 4K" }],
-    features: ["Photo + Vidéo 4K 30s", "Qualité 8K Photoréaliste", "🔥 Technique Snap Rouge incluse", "Tous les styles + 3 exclusifs Elite", "Historique illimité", "Manager dédié + API illimitée"],
+    features: [
+      { t: "Qualité 8K Photoréaliste", strong: true },
+      { t: "Crédits illimités", strong: true },
+      { t: "Vitesse maximale ~10-15s", strong: true },
+      { t: "Photo + SwapFace + Vidéo 4K jusqu'à 30s", strong: true },
+      { t: "🔥 Technique Snap Rouge incluse" },
+      { t: "Tous les styles + 3 exclusifs Elite" },
+      { t: "Historique conservé 72h" },
+      { t: "Manager dédié + API illimitée" },
+    ],
   },
 ];
+
+/* ─── Particules montantes (fond noir de la vue Formules) ── */
+function RisingParticles() {
+  // Valeurs déterministes (pas de Math.random) pour éviter tout écart SSR/client
+  const particles = Array.from({ length: 24 }, (_, i) => ({
+    left: `${(i * 37 + 13) % 100}%`,
+    size: 1.5 + ((i * 7) % 3),
+    duration: 8 + ((i * 13) % 9),
+    delay: (i * 1.7) % 10,
+  }));
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {particles.map((p, i) => (
+        <span
+          key={i}
+          className="absolute rounded-full bg-white"
+          style={{
+            left: p.left,
+            bottom: -6,
+            width: p.size,
+            height: p.size,
+            opacity: 0,
+            animation: `particle-rise ${p.duration}s linear ${p.delay}s infinite`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
 
 /* ─── Animated nav button ────────────────────────────────── */
 function NavButton({
@@ -685,7 +740,7 @@ export default function DashboardPage() {
 
     if (genType === "create") {
       if (!styleFile) { setError("Veuillez uploader une photo."); return; }
-      if (!selectedStyle && !freePrompt.trim()) { setError("Veuillez choisir un style ou entrer une description."); return; }
+      if (!selectedStyle && !freePrompt.trim()) { setError("Veuillez entrer une description."); return; }
       const enriched = buildEnrichedPrompt(selectedStyle, clothing, mood, styleBg, accessory);
       formData.append("image", await resizeImageFile(styleFile));
       if (selectedStyle) {
@@ -1133,159 +1188,19 @@ export default function DashboardPage() {
                       <div className="lg:col-span-2 space-y-4">
 
 
-                        {/* Style Celebrity — collapsible */}
-                        <div className="bg-surface/70 backdrop-blur-xl border border-surface-border rounded-2xl overflow-hidden">
-                          {/* ── Header cliquable ── */}
-                          <button
-                            onClick={() => setStyleExpanded(v => !v)}
-                            className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-white/[0.03] transition-colors"
-                          >
-                            <div className="flex items-center gap-2 min-w-0">
-                              <StepBadge n={2} />
-                              <span className="font-semibold text-sm whitespace-nowrap">Style Celebrity</span>
-                              <span className="text-white/30 text-[10px] font-normal hidden sm:inline">(optionnel)</span>
-                              {/* Badge style sélectionné — visible quand fermé */}
-                              {selectedStyle && !styleExpanded && (
-                                <span className="text-[10px] font-semibold text-accent-violet bg-accent-violet/10 border border-accent-violet/30 px-2 py-0.5 rounded-full truncate max-w-[120px]">
-                                  {selectedStyle.emoji} {selectedStyle.label}
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
-                              {!selectedStyle && !styleExpanded && (
-                                <span className="text-white/30 text-xs hidden sm:inline">Choisir…</span>
-                              )}
-                              {selectedStyle && !styleExpanded && (
-                                <span className="text-accent-violet text-xs">Modifier</span>
-                              )}
-                              <ChevronDown className={`w-4 h-4 text-white/40 transition-transform duration-200 ${styleExpanded ? "rotate-180" : ""}`} />
-                            </div>
-                          </button>
-
-                          {/* ── Grille dépliable ── */}
-                          <AnimatePresence initial={false}>
-                            {styleExpanded && (
-                              <motion.div
-                                key="style-grid"
-                                initial={{ height: 0, opacity: 0 }}
-                                animate={{ height: "auto", opacity: 1 }}
-                                exit={{ height: 0, opacity: 0 }}
-                                transition={{ duration: 0.22, ease: "easeInOut" }}
-                                className="overflow-hidden"
-                              >
-                                <div className="px-3 pb-3 border-t border-surface-border/50 pt-2">
-                                  <div className="grid grid-cols-5 sm:grid-cols-7 xl:grid-cols-9 gap-1.5">
-                                    {STYLES.map(style => {
-                                      const planTier  = userPlanTier(stats?.plan);
-                                      const isLocked  =
-                                        (style.tier === "pro"   && planTier === "essentiel") ||
-                                        (style.tier === "elite" && planTier !== "elite");
-                                      const isSelected = !isLocked && selectedStyle?.id === style.id;
-                                      const tierLabel  = style.tier === "elite" ? "Elite" : style.tier === "pro" ? "Pro" : null;
-                                      return (
-                                        <button
-                                          key={style.id}
-                                          onClick={() => {
-                                            if (isLocked) {
-                                              toast(`Style ${tierLabel} — Passez à ${tierLabel} pour l'utiliser`, { icon: "🔒" });
-                                              return;
-                                            }
-                                            handleStyleSelect(style);
-                                            setStyleExpanded(false);
-                                          }}
-                                          title={style.label}
-                                          className={`relative rounded-lg border transition-all overflow-hidden ${
-                                            isLocked   ? "border-surface-border bg-surface opacity-50 cursor-not-allowed" :
-                                            isSelected ? "border-accent-violet ring-1 ring-accent-violet/50" :
-                                                         "border-surface-border bg-surface hover:border-accent-violet/40"
-                                          }`}
-                                        >
-                                          <div className="w-full aspect-square overflow-hidden bg-surface-hover relative">
-                                            {style.previewImg ? (
-                                              <>
-                                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                <img src={style.previewImg} alt={style.label} className="w-full h-full object-cover"
-                                                  onError={e=>{(e.currentTarget.parentElement as HTMLElement).style.display="none";}} />
-                                                {isSelected && <div className="absolute inset-0 bg-accent-violet/25" />}
-                                                {isLocked && <div className="absolute inset-0 bg-black/55 flex items-center justify-center"><Lock className="w-3 h-3 text-white/60" /></div>}
-                                              </>
-                                            ) : (
-                                              <div className="w-full h-full flex items-center justify-center text-base">{style.emoji}</div>
-                                            )}
-                                            {tierLabel && (
-                                              <div className={`absolute top-0.5 left-0.5 text-[7px] font-black px-0.5 py-px rounded z-10 leading-tight ${
-                                                style.tier === "elite" ? "bg-amber-400/90 text-black" : "bg-accent-violet/90 text-white"
-                                              }`}>{tierLabel}</div>
-                                            )}
-                                            {isSelected && (
-                                              <div className="absolute top-0.5 right-0.5 w-3 h-3 bg-accent-violet rounded-full flex items-center justify-center z-10">
-                                                <span className="text-white text-[7px]">✓</span>
-                                              </div>
-                                            )}
-                                          </div>
-                                          <p className={`text-[8px] font-semibold text-center leading-tight px-0.5 py-0.5 truncate ${isSelected ? "text-accent-violet bg-accent-violet/10" : "text-white/60"}`}>
-                                            {style.label}
-                                          </p>
-                                        </button>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                        </div>
-
-                        {/* Personnalisation — visible uniquement si style sélectionné */}
-                        <AnimatePresence>
-                          {selectedStyle && (
-                            <motion.div
-                              key="refinement"
-                              initial={{ opacity: 0, y: -6 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: -6 }}
-                              transition={{ duration: 0.18 }}
-                              className="bg-surface/70 backdrop-blur-xl border border-surface-border rounded-2xl p-4 space-y-3"
-                            >
-                              <h2 className="font-semibold text-sm flex items-center gap-2">
-                                <StepBadge n={3} />
-                                Personnaliser
-                                <span className="text-white/30 text-[10px] font-normal">(optionnel)</span>
-                              </h2>
-                              {(() => {
-                                const tier = userPlanTier(stats?.plan);
-                                const lp: "pro" | null = tier === "essentiel" ? "pro" : null;
-                                const onL = (rp: "pro"|"elite", f: string) => setUpgradeTarget({ plan: rp, feature: f });
-                                return (<>
-                                  <DashOptionChips title="Vêtements"    options={CLOTHING_OPTIONS}   selected={clothing}  onSelect={setClothing}  lockedPlan={lp} onLocked={onL} />
-                                  <DashOptionChips title="Ambiance"     options={MOOD_OPTIONS}        selected={mood}      onSelect={setMood}      lockedPlan={lp} onLocked={onL} />
-                                  <DashOptionChips title="Décor / Fond" options={BACKGROUND_OPTIONS}  selected={styleBg}   onSelect={setStyleBg}   lockedPlan={lp} onLocked={onL} />
-                                  <DashOptionChips title="Accessoires"  options={ACCESSORY_OPTIONS}   selected={accessory} onSelect={setAccessory} lockedPlan={lp} onLocked={onL} />
-                                </>);
-                              })()}
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-
                         {/* Description libre + Options — côte à côte sur desktop */}
                         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                         {/* Description libre */}
                         <div className="bg-surface/70 backdrop-blur-xl border border-surface-border rounded-2xl p-3">
                           <h2 className="font-semibold text-sm mb-1.5 flex items-center gap-2">
-                            <StepBadge n={selectedStyle ? 4 : 3} />
+                            <StepBadge n={2} />
                             Description
-                            {selectedStyle
-                              ? <span className="text-white/30 text-[10px] font-normal">(optionnel)</span>
-                              : <span className="text-red-400/50 text-[10px] font-normal">(requis)</span>
-                            }
+                            <span className="text-red-400/50 text-[10px] font-normal">(requis)</span>
                           </h2>
                           <textarea
                             value={freePrompt}
                             onChange={e => setFreePrompt(e.target.value)}
-                            placeholder={selectedStyle
-                              ? "Ajoutez des détails : fond de plage, lumière dorée…"
-                              : "Décrivez la transformation : tenue, ambiance, fond…"
-                            }
+                            placeholder="Décrivez la transformation : tenue, ambiance, fond…"
                             rows={2}
                             className="w-full bg-surface border border-surface-border rounded-xl px-3 py-2 text-white text-sm placeholder-white/20 focus:outline-none focus:border-accent-violet/60 resize-none"
                           />
@@ -1294,20 +1209,10 @@ export default function DashboardPage() {
                         {/* Options de génération */}
                         <div className="bg-surface/70 backdrop-blur-xl border border-surface-border rounded-2xl p-4 space-y-3">
                           <h2 className="font-semibold text-sm flex items-center gap-2">
-                            <StepBadge n={selectedStyle ? 5 : 4} />
+                            <StepBadge n={3} />
                             Options de génération
                             <span className="text-white/30 text-[10px] font-normal">(optionnel)</span>
                           </h2>
-
-                          {/* Rendu visuel */}
-                          <GenOptionChips
-                            title="Rendu visuel"
-                            options={RENDER_STYLE_OPTIONS}
-                            selected={renderStyle}
-                            onSelect={(id) => setRenderStyle(renderStyle === id ? null : id)}
-                            planTier={userPlanTier(stats?.plan)}
-                            onLocked={(rp, f) => setUpgradeTarget({ plan: rp, feature: f })}
-                          />
 
                           {/* Intensité */}
                           <GenOptionChips
@@ -1367,9 +1272,9 @@ export default function DashboardPage() {
                           onGenerate={handleGenerate}
                           onCancel={handleCancel}
                           isGenerating={isGenerating}
-                          canGenerate={!!(styleFile && (selectedStyle || freePrompt.trim()) && consent)}
+                          canGenerate={!!(styleFile && freePrompt.trim() && consent)}
                           credits={100}
-                          step={selectedStyle ? 6 : 5}
+                          step={4}
                           plan={stats?.plan}
                         />
 
@@ -1423,45 +1328,6 @@ export default function DashboardPage() {
                             </AnimatePresence>
                           </div>
                         )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* ── SWAPFACE ── */}
-                  {genType === "swapface" && (
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                      <div className="lg:col-span-2 space-y-4">
-                        <div className="bg-surface/70 backdrop-blur-xl border border-surface-border rounded-2xl p-4">
-                          <h2 className="font-semibold text-sm mb-4 flex items-center gap-2"><StepBadge n={1} />Photos</h2>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                              <p className="text-xs font-medium text-white/60 mb-2">Votre visage (source) <span className="text-accent-violet">*</span></p>
-                              <UploadBox onFileSelected={(f,p)=>{setSwapSrcFile(f);setSwapSrcPreview(p);}} onClear={()=>{setSwapSrcFile(null);setSwapSrcPreview(null);}} preview={swapSrcPreview} label="Visage source" />
-                            </div>
-                            <div>
-                              <p className="text-xs font-medium text-white/60 mb-2">Photo de la célébrité (cible) <span className="text-accent-violet">*</span></p>
-                              <UploadBox onFileSelected={(f,p)=>{setSwapTgtFile(f);setSwapTgtPreview(p);}} onClear={()=>{setSwapTgtFile(null);setSwapTgtPreview(null);}} preview={swapTgtPreview} label="Photo cible" />
-                            </div>
-                          </div>
-                          <p className="text-white/30 text-xs mt-3">💡 Pour ajouter une célébrité à votre photo : votre visage en Source, la photo de la célébrité en Cible.</p>
-                        </div>
-                        <div className="bg-surface/70 backdrop-blur-xl border border-surface-border rounded-2xl p-4 space-y-3">
-                          <h2 className="font-semibold text-sm flex items-center gap-2"><StepBadge n={2} />Options</h2>
-                          <div className="flex gap-2">
-                            {[{v:"auto",l:"Auto"},{v:"0",l:"Visage 1"},{v:"1",l:"Visage 2"}].map(o=>(
-                              <button key={o.v} onClick={()=>setFaceIndex(o.v as "0"|"1"|"auto")}
-                                className={`flex-1 py-1.5 rounded-xl text-xs font-medium border transition-all ${faceIndex===o.v?"bg-accent-violet/15 border-accent-violet text-white":"border-surface-border text-white/50 hover:border-accent-violet/40"}`}>
-                                {o.l}
-                              </button>
-                            ))}
-                          </div>
-                          <textarea value={swapExtraPrompt} onChange={e=>setSwapExtraPrompt(e.target.value)}
-                            placeholder="Infos supplémentaires…" rows={2}
-                            className="w-full bg-surface border border-surface-border rounded-xl px-3 py-2 text-white text-xs placeholder-white/20 focus:outline-none focus:border-accent-violet/60 resize-none" />
-                        </div>
-                      </div>
-                      <div className="lg:col-span-1">
-                        <GenerateCard consent={consent} setConsent={setConsent} error={error} onGenerate={handleGenerate} onCancel={handleCancel} isGenerating={isGenerating} canGenerate={!!(swapSrcFile && swapTgtFile && consent)} credits={120} step={3} plan={stats?.plan} />
                       </div>
                     </div>
                   )}
@@ -1749,24 +1615,15 @@ export default function DashboardPage() {
                         </div>
                       )}
                     </div>
-                    {userPlanTier(stats?.plan) === "essentiel" && (
-                      <div className="mt-3 flex items-center gap-3 bg-accent-violet/8 border border-accent-violet/20 rounded-xl px-4 py-2.5">
-                        <Lock className="w-3.5 h-3.5 text-accent-violet flex-shrink-0" />
-                        <p className="text-white/50 text-xs">
-                          Plan Essentiel — historique limité à <strong className="text-white/70">20 images</strong>.{" "}
-                          <Link href="/pricing" className="text-accent-violet hover:underline">Passez à Pro</Link> pour 100 images ou à Elite pour l&apos;historique illimité.
-                        </p>
-                      </div>
-                    )}
-                    {userPlanTier(stats?.plan) === "pro" && (
-                      <div className="mt-3 flex items-center gap-3 bg-accent-violet/8 border border-accent-violet/20 rounded-xl px-4 py-2.5">
-                        <Sparkles className="w-3.5 h-3.5 text-accent-violet flex-shrink-0" />
-                        <p className="text-white/50 text-xs">
-                          Plan Pro — historique jusqu&apos;à <strong className="text-white/70">100 images</strong>.{" "}
-                          <Link href="/pricing" className="text-accent-violet hover:underline">Passez à Elite</Link> pour un historique illimité.
-                        </p>
-                      </div>
-                    )}
+                    {/* ── Rétention 72h — bien visible ── */}
+                    <div className="mt-3 flex items-center gap-3 bg-amber-400/10 border border-amber-400/40 rounded-xl px-4 py-3">
+                      <Clock className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                      <p className="text-white/60 text-xs leading-relaxed">
+                        <strong className="text-amber-400">Conservation limitée à 72h</strong> — chaque image est{" "}
+                        <strong className="text-white">automatiquement supprimée 72 heures</strong> après sa création.
+                        Pensez à <strong className="text-white">télécharger vos créations</strong> pour les garder !
+                      </p>
+                    </div>
                   </div>
                   {generations.length === 0 ? (
                     <div className="text-center py-24 card">
@@ -1803,6 +1660,18 @@ export default function DashboardPage() {
                             <p className="text-white text-xs font-medium truncate">{gen.style}</p>
                             <p className="text-white/50 text-xs">{new Date(gen.created_at).toLocaleDateString("fr-FR")}</p>
                           </div>
+                          {/* Compte à rebours avant suppression (rétention 72h) */}
+                          {(() => {
+                            const hoursLeft = Math.max(0, Math.ceil(72 - (Date.now() - new Date(gen.created_at).getTime()) / 3_600_000));
+                            return (
+                              <span className={`absolute top-1.5 right-1.5 z-20 flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold backdrop-blur-sm border ${
+                                hoursLeft <= 12 ? "bg-red-500/30 border-red-500/50 text-red-300" : "bg-black/50 border-white/15 text-white/70"
+                              }`}>
+                                <Clock className="w-2.5 h-2.5" />
+                                {hoursLeft}h
+                              </span>
+                            );
+                          })()}
                         </motion.div>
                       ))}
                     </div>
@@ -2033,69 +1902,77 @@ export default function DashboardPage() {
               {/* ══ SUBSCRIPTION VIEW ══ */}
               {navView === "subscription" && (
                 <motion.div key="subscription" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.22 }}>
-                  <div className="mb-7 pt-8">
-                    <h1 className="text-3xl font-black mb-1">Formules</h1>
-                    <p className="text-white/40">Choisissez l&apos;abonnement qui vous correspond</p>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-6">
-                    {PLANS_DATA.map((plan,i)=>{
-                      const Icon       = plan.icon;
-                      // Un compte gratuit n'a AUCUN plan actif : userPlanTier('free')
-                      // retourne "essentiel" par défaut, donc on exige un plan payant.
-                      const isCurrent  = isPaid && userPlanTier(stats?.plan) === plan.id;
-                      return (
-                        <motion.div key={plan.id} initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:i*0.1}}
-                          className={`card border ${plan.color} relative flex flex-col ${isCurrent ? "ring-2 ring-offset-2 ring-offset-background " + plan.color.replace("border-","ring-") : ""}`}>
-                          {isCurrent && (
-                            <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-xs font-bold px-3 py-1 rounded-full bg-green-500/20 text-green-400 border border-green-500/40 whitespace-nowrap">✓ Votre plan actuel</span>
-                          )}
-                          {!isCurrent && plan.badge && (
-                            <span className={`absolute -top-3 left-1/2 -translate-x-1/2 text-xs font-bold px-3 py-1 rounded-full ${plan.badgeBg} ${plan.badgeText} border border-current`}>{plan.badge}</span>
-                          )}
-                          <div className="flex items-center gap-3 mb-3">
-                            <div className={`w-10 h-10 rounded-xl ${plan.badgeBg} flex items-center justify-center ${plan.badgeText}`}><Icon className="w-5 h-5" /></div>
-                            <div>
-                              <p className="font-bold">{plan.name}</p>
-                              <p className={`text-xs ${plan.badgeText}`}>{plan.credits} crédits/mois</p>
-                            </div>
-                          </div>
-                          <p className="text-3xl font-black mb-3">{plan.price}<span className="text-sm font-normal text-white/40">/mois</span></p>
-                          {/* Highlights */}
-                          <div className="grid grid-cols-3 gap-1 mb-4">
-                            {plan.highlights.map(h=>(
-                              <div key={h.k} className="bg-surface-hover rounded-lg p-1.5 text-center">
-                                <p className="text-white/30 text-[9px] uppercase tracking-wide">{h.k}</p>
-                                <p className={`text-[10px] font-bold leading-tight ${plan.badgeText}`}>{h.v}</p>
+                  {/* Fond noir + particules montantes */}
+                  <div className="relative rounded-3xl bg-black border border-white/10 overflow-hidden px-4 sm:px-6 pb-8 mt-6 mb-6">
+                    <RisingParticles />
+                    <div className="relative z-10">
+                      <div className="mb-8 pt-8">
+                        <h1 className="text-3xl font-black mb-1">Formules</h1>
+                        <p className="text-white/40">Choisissez l&apos;abonnement qui vous correspond</p>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-6 items-center">
+                        {PLANS_DATA.map((plan,i)=>{
+                          const Icon       = plan.icon;
+                          const isPro      = plan.id === "pro";
+                          const isElite    = plan.id === "elite";
+                          // Un compte gratuit n'a AUCUN plan actif : userPlanTier('free')
+                          // retourne "essentiel" par défaut, donc on exige un plan payant.
+                          const isCurrent  = isPaid && userPlanTier(stats?.plan) === plan.id;
+                          return (
+                            <motion.div key={plan.id} initial={{opacity:0,y:20}} animate={{opacity:1,y:0,scale:isPro?1.04:1}} transition={{delay:i*0.1}}
+                              className={`card border ${plan.color} relative flex flex-col bg-[#0D0D0D] ${isPro ? "z-10 sm:py-8" : ""} ${isCurrent ? "ring-2 ring-offset-2 ring-offset-background " + plan.color.replace("border-","ring-") : ""}`}>
+                              {isCurrent && (
+                                <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-xs font-bold px-3 py-1 rounded-full bg-green-500/20 text-green-400 border border-green-500/40 whitespace-nowrap z-20">✓ Votre plan actuel</span>
+                              )}
+                              {!isCurrent && plan.badge && (
+                                <span className={`absolute -top-3 left-1/2 -translate-x-1/2 text-xs font-bold px-3 py-1 rounded-full ${plan.badgeBg} ${plan.badgeText} border border-current z-20 ${isElite ? "gold-shimmer-text border-amber-400/60" : ""}`}>{plan.badge}</span>
+                              )}
+                              <div className="flex items-center gap-3 mb-3">
+                                <div className={`w-10 h-10 rounded-xl ${plan.badgeBg} flex items-center justify-center ${plan.badgeText}`}><Icon className="w-5 h-5" /></div>
+                                <div>
+                                  <p className={`font-bold ${isElite ? "gold-shimmer-text text-lg" : ""}`}>{plan.name}</p>
+                                  <p className={`text-xs ${isElite ? "gold-shimmer-text font-bold" : plan.badgeText}`}>{plan.credits} crédits/mois</p>
+                                </div>
                               </div>
-                            ))}
-                          </div>
-                          <ul className="space-y-2 mb-5 flex-1">
-                            {plan.features.map(f=>(
-                              <li key={f} className="flex items-start gap-2 text-xs text-white/60">
-                                <Check className={`w-3.5 h-3.5 flex-shrink-0 mt-0.5 ${plan.badgeText}`} />{f}
-                              </li>
-                            ))}
-                          </ul>
-                          {isCurrent ? (
-                            <div className="w-full py-2.5 rounded-xl text-center text-sm font-semibold bg-green-500/10 text-green-400 border border-green-500/20">Plan actif</div>
-                          ) : (
-                            <Link href="/pricing" className="btn-primary text-center w-full text-sm py-2.5">Passer à {plan.name}</Link>
-                          )}
-                        </motion.div>
-                      );
-                    })}
-                  </div>
-                  <div className="card flex items-center gap-4">
-                    <div className="w-12 h-12 bg-accent-violet/10 rounded-xl flex items-center justify-center text-accent-violet">
-                      <Zap className="w-6 h-6" />
+                              <p className="text-3xl font-black mb-3">{plan.price}<span className="text-sm font-normal text-white/40">/mois</span></p>
+                              {/* Highlights */}
+                              <div className="grid grid-cols-3 gap-1 mb-4">
+                                {plan.highlights.map(h=>(
+                                  <div key={h.k} className="bg-white/5 rounded-lg p-1.5 text-center">
+                                    <p className="text-white/30 text-[9px] uppercase tracking-wide">{h.k}</p>
+                                    <p className={`text-[10px] font-bold leading-tight ${plan.badgeText}`}>{h.v}</p>
+                                  </div>
+                                ))}
+                              </div>
+                              <ul className="space-y-2 mb-5 flex-1">
+                                {plan.features.map(f=>(
+                                  <li key={f.t} className={`flex items-start gap-2 text-xs ${f.strong ? "text-white font-bold" : "text-white/50"}`}>
+                                    <Check className={`w-3.5 h-3.5 flex-shrink-0 mt-0.5 ${plan.badgeText}`} />{f.t}
+                                  </li>
+                                ))}
+                              </ul>
+                              {isCurrent ? (
+                                <div className="w-full py-2.5 rounded-xl text-center text-sm font-semibold bg-green-500/10 text-green-400 border border-green-500/20">Plan actif</div>
+                              ) : (
+                                <Link href="/pricing" className="btn-primary text-center w-full text-sm py-2.5">Passer à {plan.name}</Link>
+                              )}
+                            </motion.div>
+                          );
+                        })}
+                      </div>
+                      <div className="card bg-[#0D0D0D] flex items-center gap-4">
+                        <div className="w-12 h-12 bg-accent-violet/10 rounded-xl flex items-center justify-center text-accent-violet">
+                          <Zap className="w-6 h-6" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-white/50 text-sm">Crédits restants</p>
+                          <p className="text-2xl font-black text-accent-violet">{stats?.credits ?? 0}</p>
+                        </div>
+                        <Link href="/pricing" className="btn-ghost flex items-center gap-1 text-sm">
+                          <Plus className="w-4 h-4" />Recharger
+                        </Link>
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <p className="text-white/50 text-sm">Crédits restants</p>
-                      <p className="text-2xl font-black text-accent-violet">{stats?.credits ?? 0}</p>
-                    </div>
-                    <Link href="/pricing" className="btn-ghost flex items-center gap-1 text-sm">
-                      <Plus className="w-4 h-4" />Recharger
-                    </Link>
                   </div>
                 </motion.div>
               )}

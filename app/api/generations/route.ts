@@ -12,12 +12,21 @@ export async function GET() {
     return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
   }
 
+  // Rétention 72h : purge les générations expirées avant de renvoyer l'historique
+  const cutoff = new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString();
+  await supabase
+    .from("generations")
+    .delete()
+    .eq("user_id", user.id)
+    .lt("created_at", cutoff);
+
   const { data: generations, error } = await supabase
     .from("generations")
     .select("id, output_image_url, input_image_url, style, created_at")
     .eq("user_id", user.id)
     .eq("status", "done")
     .neq("output_image_url", "")
+    .gte("created_at", cutoff)
     .order("created_at", { ascending: false })
     .limit(20);
 

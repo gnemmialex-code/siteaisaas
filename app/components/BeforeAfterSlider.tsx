@@ -1,6 +1,9 @@
 "use client";
 
 import { useRef, useState, useCallback } from "react";
+import Image from "next/image";
+
+const IMG_SIZES = "(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw";
 
 interface Props {
   before: string;
@@ -35,14 +38,18 @@ export default function BeforeAfterSlider({ before, after, alt = "" }: Props) {
   return (
     <div ref={containerRef} className="relative w-full h-full select-none overflow-hidden">
       {/* After (full) */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={after} alt={`${alt} après`} className="absolute inset-0 w-full h-full object-cover" draggable={false} />
+      <Image src={after} alt={`${alt} après`} fill sizes={IMG_SIZES} className="object-cover" draggable={false} />
 
       {/* Before (clipped to left of slider) */}
-      <div className="absolute inset-0 overflow-hidden" style={{ width: `${pos}%` }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={before} alt={`${alt} avant`} className="absolute inset-0 w-full h-full object-cover" style={{ width: containerRef.current?.offsetWidth ?? "100%" }} draggable={false} />
-      </div>
+      <Image
+        src={before}
+        alt={`${alt} avant`}
+        fill
+        sizes={IMG_SIZES}
+        className="object-cover"
+        style={{ clipPath: `inset(0 ${100 - pos}% 0 0)` }}
+        draggable={false}
+      />
 
       {/* Divider line */}
       <div
