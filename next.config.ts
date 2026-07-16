@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  turbopack: {
+    root: __dirname,
+  },
   serverExternalPackages: ["sharp"],
   // Embarque la vidéo privée Snap Rouge dans le bundle serveur (Vercel)
   outputFileTracingIncludes: {

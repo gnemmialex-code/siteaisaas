@@ -1,16 +1,14 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import BeforeAfterSlider from "./components/BeforeAfterSlider";
-import { supabase } from "@/lib/supabase";
 import {
-  Sparkles, Zap, Shield, Star, ArrowRight, Play,
-  ChevronDown, Quote, ImageIcon, Film, Send, Paperclip, X,
-  Lock, EyeOff, UserCheck, Trash2, Flame, Monitor, Smartphone, Check,
+  Sparkles, Star, ArrowRight, Play,
+  ChevronDown, Quote, ImageIcon, Film, Flame, Check,
 } from "lucide-react";
 
 // ─── DONNÉES ────────────────────────────────────────────────────────────────
@@ -41,12 +39,10 @@ const REVIEWS = [
 const EXAMPLES_IMAGES = [
   { style: "Scarlett Johansson", before: "/examples/scarlett_johansson_avant.png", after: "/examples/scarlett_johansson_apres.png" },
   { style: "Mia Khalifa",   before: "/examples/mia_avant.png" , after: "/examples/mia_apres.png" },
-  { style: "Margot Robbit",        before: "/examples/margot_robbit_avant.png" , after: "/examples/margot_robbit_apres.png" },
   { style: "Leonardo DiCaprio",          before: "/examples/leonardo_dicaprio_avant.png", after: "/examples/leonardo_dicaprio_apres.png" },
   { style: "Denzel Washington",       before: "/examples/denzel_avant.png", after: "/examples/denzel_apres.png" },
   { style: "Johnny Sins",      before: "/examples/johnny_avant.png", after: "/examples/johnny_apres.png" },
   { style: "Kylian Mbappé",      before: "/examples/kylian_avant.png", after: "/examples/kylian_apres.png" },
-  { style: "Eva Femme",      before: "/examples/eva_avant.png", after: "/examples/eva_apres.png" },
 
 ];
 
@@ -57,19 +53,11 @@ const EXAMPLES_VIDEOS = [
   { title: "Présentation de l'outfit",     youtubeId: null, localSrc: "/videos/outfit.mp4" },
 ];
 
-// ─── VIDÉOS DÉMO (section sous le hero) ─────────────────────────────────────
-// Les deux versions de la démo, dans /public/videos/.
-// Le visiteur choisit son affichage : Version PC (horizontal) ou Version mobile (vertical).
-const DEMO_VIDEOS = {
-  horizontal: "/videos/tuto-astra-horizontal.mp4",
-  vertical:   "/videos/tuto-astra-vertical.mp4",
-};
+// ─── VIDÉO DÉMO (section sous le hero) ──────────────────────────────────────
+// Version mobile (verticale), dans /public/videos/.
+const DEMO_VIDEO = "/videos/tuto-astra-vertical.mp4";
 
 const FAQ_ITEMS = [
-  {
-    q: "Comment fonctionne le Celebrity DeepSwap ?",
-    a: "Notre pipeline IA en 4 étapes : détection du visage (InsightFace), génération du style (SDXL), face swap haute fidélité (ReActor), puis upscale 4K (RealESRGAN). Tout se passe en moins de 30 secondes sur nos serveurs.",
-  },
   {
     q: "Mes photos sont-elles conservées ?",
     a: "Non. Votre photo originale est automatiquement supprimée de nos serveurs après traitement. Seule l'image générée est stockée dans votre historique, et vous pouvez la supprimer à tout moment.",
@@ -86,21 +74,6 @@ const FAQ_ITEMS = [
     q: "Quelle est la résolution finale des images ?",
     a: "Toutes les images sont générées puis upscalées x4 via RealESRGAN. La résolution finale atteint jusqu'à 4K (4096×4096 px) selon le style choisi.",
   },
-  {
-    q: "Puis-je utiliser les images commercialement ?",
-    a: "Les images générées sont destinées à un usage créatif personnel. Pour un usage commercial (publicité, revente, etc.), contactez-nous pour une licence spécifique.",
-  },
-  {
-    q: "Comment fonctionne le remboursement ?",
-    a: "Si vous n'êtes pas satisfait de vos 3 premières générations, nous remboursons intégralement votre achat sous 48h, sans question.",
-  },
-];
-
-const FEATURES = [
-  { icon: <Sparkles className="w-6 h-6" />, title: "IA Ultra HD", description: "Génération 4K avec upscale x4 automatique via RealESRGAN" },
-  { icon: <Zap className="w-6 h-6" />, title: "Résultats en 30s", description: "Pipeline optimisé pour des résultats instantanés" },
-  { icon: <Shield className="w-6 h-6" />, title: "100% Privé", description: "Vos photos sont supprimées après traitement" },
-  { icon: <Star className="w-6 h-6" />, title: "Qualité Pro", description: "Technologie ReActor + FaceID pour un rendu naturel" },
 ];
 
 // ─── COMPOSANTS INTERNES ────────────────────────────────────────────────────
@@ -143,6 +116,8 @@ function ImageRow({
             <img
               src={src}
               alt=""
+              loading={i < 5 ? "eager" : "lazy"}
+              decoding="async"
               className="w-full h-full object-cover"
               onError={(e) => {
                 // Cache la cellule si l'image n'existe pas encore
@@ -368,8 +343,6 @@ function ExamplesGallery() {
 // ─── SECTION VIDÉO DÉMO ─────────────────────────────────────────────────────
 
 function DemoVideoSection() {
-  const [mode, setMode] = useState<"horizontal" | "vertical">("horizontal");
-
   return (
     <section id="demo" className="py-24 px-4 sm:px-6 relative overflow-hidden">
       {/* Orbes décoratifs */}
@@ -403,69 +376,35 @@ function DemoVideoSection() {
           </p>
         </motion.div>
 
-        {/* Sélecteur Version PC / Version mobile */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="flex justify-center mb-8"
-        >
-          <div className="inline-flex items-center gap-1 bg-surface border border-surface-border rounded-2xl p-1">
-            {([
-              { id: "horizontal" as const, label: "Version PC",     icon: <Monitor className="w-4 h-4" /> },
-              { id: "vertical"   as const, label: "Version mobile", icon: <Smartphone className="w-4 h-4" /> },
-            ]).map(opt => (
-              <button
-                key={opt.id}
-                onClick={() => setMode(opt.id)}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-                  mode === opt.id
-                    ? "bg-accent-violet text-white shadow-violet"
-                    : "text-white/50 hover:text-white"
-                }`}
-              >
-                {opt.icon}
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </motion.div>
-
         <motion.div
           initial={{ opacity: 0, y: 30, scale: 0.97 }}
           whileInView={{ opacity: 1, y: 0, scale: 1 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
         >
-          {/* Les deux vidéos restent montées en permanence : lecture auto en boucle
-              dès le chargement, impossible à mettre en pause ou télécharger.
-              Le sélecteur ne fait que basculer l'affichage. */}
-          {(["horizontal", "vertical"] as const).map(m => (
-            <div
-              key={m}
-              className={`mx-auto ${m === "vertical" ? "max-w-sm" : "max-w-4xl"} ${mode === m ? "block" : "hidden"}`}
-            >
-              <div className="relative rounded-3xl overflow-hidden border border-surface-border bg-surface shadow-violet select-none">
-                {/* Liseré dégradé */}
-                <div className="absolute inset-0 rounded-3xl pointer-events-none z-10" style={{ boxShadow: "inset 0 0 0 1px rgba(138,43,226,0.25)" }} />
-                <div className="relative bg-surface-hover" style={{ aspectRatio: m === "vertical" ? "9/16" : "16/9" }}>
-                  <video
-                    src={DEMO_VIDEOS[m]}
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                    preload="auto"
-                    disablePictureInPicture
-                    controlsList="nodownload noplaybackrate"
-                    onContextMenu={e => e.preventDefault()}
-                    onPause={e => { e.currentTarget.play().catch(() => {}); }}
-                    className="w-full h-full object-cover absolute inset-0 pointer-events-none"
-                  />
-                </div>
+          {/* Lecture auto en boucle dès le chargement,
+              impossible à mettre en pause ou télécharger. */}
+          <div className="mx-auto max-w-sm">
+            <div className="relative rounded-3xl overflow-hidden border border-surface-border bg-surface shadow-violet select-none">
+              {/* Liseré dégradé */}
+              <div className="absolute inset-0 rounded-3xl pointer-events-none z-10" style={{ boxShadow: "inset 0 0 0 1px rgba(138,43,226,0.25)" }} />
+              <div className="relative bg-surface-hover" style={{ aspectRatio: "9/16" }}>
+                <video
+                  src={DEMO_VIDEO}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  preload="metadata"
+                  disablePictureInPicture
+                  controlsList="nodownload noplaybackrate"
+                  onContextMenu={e => e.preventDefault()}
+                  onPause={e => { e.currentTarget.play().catch(() => {}); }}
+                  className="w-full h-full object-cover absolute inset-0 pointer-events-none"
+                />
               </div>
             </div>
-          ))}
+          </div>
         </motion.div>
       </div>
     </section>
@@ -476,7 +415,7 @@ function DemoVideoSection() {
 
 function SnapRougeTutoSection() {
   return (
-    <section className="py-24 px-4 sm:px-6 relative overflow-hidden">
+    <section className="py-12 px-4 sm:px-6 relative overflow-hidden">
       {/* Ambiance rouge */}
       <motion.div
         className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[300px] rounded-full bg-red-500/8 blur-[100px] pointer-events-none"
@@ -485,39 +424,39 @@ function SnapRougeTutoSection() {
       />
       <div className="absolute -bottom-20 -right-20 w-80 h-80 rounded-full bg-accent-violet/8 blur-3xl pointer-events-none" />
 
-      <div className="max-w-6xl mx-auto relative z-10">
+      <div className="max-w-4xl mx-auto relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-12"
+          className="text-center mb-8"
         >
-          <span className="inline-flex items-center gap-2 bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-semibold px-4 py-2 rounded-full mb-6">
-            <Flame className="w-4 h-4" />
+          <span className="inline-flex items-center gap-2 bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-semibold px-3 py-1.5 rounded-full mb-4">
+            <Flame className="w-3.5 h-3.5" />
             Tuto Snapchat
           </span>
-          <h2 className="text-4xl sm:text-5xl font-bold mb-4">
+          <h2 className="text-2xl sm:text-3xl font-bold mb-3">
             Envoyer un <span className="text-red-500">Snap Rouge</span> 🔥
           </h2>
-          <p className="text-white/50 text-lg max-w-2xl mx-auto">
+          <p className="text-white/50 text-base max-w-2xl mx-auto">
             Envoyez vos créations IA comme de vrais Snaps pris sur le moment —
             la technique complète en vidéo vous attend dans votre Dashboard.
           </p>
         </motion.div>
 
         {/* Snap violet vs Snap Rouge */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-4xl mx-auto mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto mb-6">
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            className="rounded-2xl border border-surface-border bg-surface p-6"
+            className="rounded-2xl border border-surface-border bg-surface p-4"
           >
             <div className="flex items-center gap-3 mb-3">
-              <span className="w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-xl">💜</span>
-              <p className="font-black text-lg text-white/70">Snap violet</p>
+              <span className="w-8 h-8 rounded-lg bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-base">💜</span>
+              <p className="font-black text-base text-white/70">Snap violet</p>
             </div>
-            <p className="text-white/45 text-sm leading-relaxed">
+            <p className="text-white/45 text-xs leading-relaxed">
               Une photo envoyée depuis la galerie apparaît en <strong className="text-white/70">violet</strong> :
               tout le monde voit immédiatement que ce n&apos;est pas une photo prise sur le moment.
               L&apos;effet de surprise est ruiné.
@@ -527,14 +466,14 @@ function SnapRougeTutoSection() {
             initial={{ opacity: 0, x: 20 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            className="rounded-2xl border border-red-500/40 bg-red-500/5 p-6 relative overflow-hidden"
+            className="rounded-2xl border border-red-500/40 bg-red-500/5 p-4 relative overflow-hidden"
           >
             <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-red-500/15 blur-2xl pointer-events-none" />
             <div className="flex items-center gap-3 mb-3 relative">
-              <span className="w-10 h-10 rounded-xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-xl">🔴</span>
-              <p className="font-black text-lg text-red-400">Snap Rouge</p>
+              <span className="w-8 h-8 rounded-lg bg-red-500/15 border border-red-500/30 flex items-center justify-center text-base">🔴</span>
+              <p className="font-black text-base text-red-400">Snap Rouge</p>
             </div>
-            <p className="text-white/55 text-sm leading-relaxed relative">
+            <p className="text-white/55 text-xs leading-relaxed relative">
               Avec notre technique, votre création IA part en <strong className="text-red-400">Snap Rouge</strong> —
               exactement comme une photo prise en direct avec l&apos;appareil photo.
               Effet garanti auprès de vos amis. 🔥
@@ -543,7 +482,7 @@ function SnapRougeTutoSection() {
         </div>
 
         {/* Étapes */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-4xl mx-auto mb-10">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-3xl mx-auto mb-6">
           {[
             { step: "01", title: "Créez votre photo IA", desc: "Générez votre transformation sur AstraCrea et téléchargez-la en haute qualité" },
             { step: "02", title: "Débloquez la technique", desc: "Guide vidéo complet, étape par étape — iPhone et Android" },
@@ -555,11 +494,11 @@ function SnapRougeTutoSection() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.1 }}
-              className="rounded-2xl border border-surface-border bg-surface p-5 relative overflow-hidden"
+              className="rounded-2xl border border-surface-border bg-surface p-4 relative overflow-hidden"
             >
-              <span className="text-5xl font-black text-red-500/15 absolute top-3 right-4">{item.step}</span>
-              <h3 className="font-bold text-white mb-2 relative">{item.title}</h3>
-              <p className="text-white/45 text-sm leading-relaxed relative">{item.desc}</p>
+              <span className="text-3xl font-black text-red-500/15 absolute top-2 right-3">{item.step}</span>
+              <h3 className="font-bold text-white text-sm mb-1.5 relative">{item.title}</h3>
+              <p className="text-white/45 text-xs leading-relaxed relative">{item.desc}</p>
             </motion.div>
           ))}
         </div>
@@ -569,15 +508,15 @@ function SnapRougeTutoSection() {
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="flex flex-wrap justify-center gap-3 max-w-3xl mx-auto mb-12"
+          className="flex flex-wrap justify-center gap-2 max-w-3xl mx-auto mb-8"
         >
           {[
             "Vidéo exclusive de la technique",
             "Fonctionne sur iPhone et Android",
             "Accès à vie — payez une seule fois",
           ].map(label => (
-            <span key={label} className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-red-500/10 border border-red-500/25 text-red-400 text-sm font-medium">
-              <Check className="w-4 h-4 flex-shrink-0" />
+            <span key={label} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/25 text-red-400 text-xs font-medium">
+              <Check className="w-3.5 h-3.5 flex-shrink-0" />
               {label}
             </span>
           ))}
@@ -592,13 +531,13 @@ function SnapRougeTutoSection() {
         >
           <Link
             href="/dashboard?view=snaprouge"
-            className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold text-lg transition-all shadow-lg shadow-red-500/25 hover:scale-[1.03] active:scale-[0.97]"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold text-base transition-all shadow-lg shadow-red-500/25 hover:scale-[1.03] active:scale-[0.97]"
           >
-            <Flame className="w-5 h-5" />
+            <Flame className="w-4 h-4" />
             Débloquer la technique complète
-            <ArrowRight className="w-5 h-5" />
+            <ArrowRight className="w-4 h-4" />
           </Link>
-          <p className="text-white/30 text-sm mt-4">
+          <p className="text-white/30 text-xs mt-3">
             Inclus avec les abonnements <span className="text-accent-violet font-semibold">Pro</span> et{" "}
             <span className="text-amber-400 font-semibold">Elite</span>, ou en accès unique
           </p>
@@ -628,9 +567,9 @@ function FaqAccordion() {
           >
             <button
               onClick={() => setOpen(isOpen ? null : i)}
-              className="w-full flex items-center justify-between px-6 py-5 text-left group"
+              className="w-full flex items-center justify-between px-5 py-3.5 text-left group"
             >
-              <span className={`font-semibold transition-colors ${isOpen ? "text-white" : "text-white/80 group-hover:text-white"}`}>
+              <span className={`font-semibold text-sm transition-colors ${isOpen ? "text-white" : "text-white/80 group-hover:text-white"}`}>
                 {item.q}
               </span>
               <ChevronDown
@@ -647,7 +586,7 @@ function FaqAccordion() {
                   exit={{ height: 0, opacity: 0 }}
                   transition={{ duration: 0.25, ease: "easeInOut" }}
                 >
-                  <p className="px-6 pb-5 text-white/60 leading-relaxed text-sm">
+                  <p className="px-5 pb-4 text-white/60 leading-relaxed text-sm">
                     {item.a}
                   </p>
                 </motion.div>
@@ -657,204 +596,6 @@ function FaqAccordion() {
         );
       })}
     </div>
-  );
-}
-
-// ─── CONTACT FORM ───────────────────────────────────────────────────────────
-
-function ContactForm() {
-  const [email,       setEmail]       = useState("");
-  const [emailLocked, setEmailLocked] = useState(false);
-  const [firstName,   setFirstName]   = useState("");
-  const [subject,     setSubject]     = useState("");
-  const [message,     setMessage]     = useState("");
-  const [imageFile,   setImageFile]   = useState<File | null>(null);
-  const [imagePreview,setImagePreview]= useState<string | null>(null);
-  const [loading,     setLoading]     = useState(false);
-  const [success,     setSuccess]     = useState(false);
-  const [error,       setError]       = useState<string | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user?.email) {
-        setEmail(data.user.email);
-        setEmailLocked(true);
-      }
-    });
-  }, []);
-
-  const handleImage = (file: File) => {
-    setImageFile(file);
-    const reader = new FileReader();
-    reader.onload = (e) => setImagePreview(e.target?.result as string);
-    reader.readAsDataURL(file);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    if (!email || !firstName || !subject || !message) {
-      setError("Veuillez remplir tous les champs obligatoires.");
-      return;
-    }
-    setLoading(true);
-    try {
-      const fd = new FormData();
-      fd.append("email",      email);
-      fd.append("first_name", firstName);
-      fd.append("subject",    subject);
-      fd.append("message",    message);
-      if (imageFile) fd.append("image", imageFile);
-
-      const res = await fetch("/api/contact", { method: "POST", body: fd });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Erreur lors de l'envoi");
-      setSuccess(true);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erreur inconnue");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (success) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="flex flex-col items-center justify-center py-16 text-center"
-      >
-        <div className="w-16 h-16 bg-green-500/20 border border-green-500/30 rounded-2xl flex items-center justify-center mb-5">
-          <span className="text-3xl">✓</span>
-        </div>
-        <h3 className="text-2xl font-bold mb-2">Message envoyé !</h3>
-        <p className="text-white/50 max-w-sm">
-          Merci {firstName}, nous avons bien reçu votre message et vous répondrons rapidement.
-        </p>
-        <button
-          onClick={() => { setSuccess(false); setSubject(""); setMessage(""); setImageFile(null); setImagePreview(null); if (!emailLocked) setEmail(""); setFirstName(""); }}
-          className="mt-6 text-accent-violet text-sm hover:underline"
-        >
-          Envoyer un autre message
-        </button>
-      </motion.div>
-    );
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Email + Prénom */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-xs font-semibold text-white/50 uppercase tracking-wide mb-1.5">
-            Email <span className="text-red-400">*</span>
-          </label>
-          <input
-            type="email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            readOnly={emailLocked}
-            placeholder="votre@email.com"
-            className={`w-full bg-surface border border-surface-border rounded-xl px-4 py-3 text-white text-sm placeholder-white/20 focus:outline-none focus:border-accent-violet/60 transition-colors ${emailLocked ? "opacity-60 cursor-not-allowed" : ""}`}
-          />
-          {emailLocked && <p className="text-white/30 text-[10px] mt-1">Pré-rempli depuis votre compte</p>}
-        </div>
-        <div>
-          <label className="block text-xs font-semibold text-white/50 uppercase tracking-wide mb-1.5">
-            Prénom <span className="text-red-400">*</span>
-          </label>
-          <input
-            type="text"
-            value={firstName}
-            onChange={e => setFirstName(e.target.value)}
-            placeholder="Votre prénom"
-            className="w-full bg-surface border border-surface-border rounded-xl px-4 py-3 text-white text-sm placeholder-white/20 focus:outline-none focus:border-accent-violet/60 transition-colors"
-          />
-        </div>
-      </div>
-
-      {/* Sujet */}
-      <div>
-        <label className="block text-xs font-semibold text-white/50 uppercase tracking-wide mb-1.5">
-          Motif / Sujet <span className="text-red-400">*</span>
-        </label>
-        <input
-          type="text"
-          value={subject}
-          onChange={e => setSubject(e.target.value)}
-          placeholder="Ex : Question sur mon abonnement, Problème technique, Partenariat…"
-          className="w-full bg-surface border border-surface-border rounded-xl px-4 py-3 text-white text-sm placeholder-white/20 focus:outline-none focus:border-accent-violet/60 transition-colors"
-        />
-      </div>
-
-      {/* Message */}
-      <div>
-        <label className="block text-xs font-semibold text-white/50 uppercase tracking-wide mb-1.5">
-          Message <span className="text-red-400">*</span>
-        </label>
-        <textarea
-          value={message}
-          onChange={e => setMessage(e.target.value)}
-          placeholder="Décrivez votre demande en détail…"
-          rows={5}
-          className="w-full bg-surface border border-surface-border rounded-xl px-4 py-3 text-white text-sm placeholder-white/20 focus:outline-none focus:border-accent-violet/60 resize-none transition-colors"
-        />
-      </div>
-
-      {/* Image optionnelle */}
-      <div>
-        <label className="block text-xs font-semibold text-white/50 uppercase tracking-wide mb-1.5">
-          Image / Capture d&apos;écran <span className="text-white/25 font-normal">(optionnel)</span>
-        </label>
-        {imagePreview ? (
-          <div className="relative inline-block">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={imagePreview} alt="preview" className="h-24 rounded-xl object-cover border border-surface-border" />
-            <button
-              type="button"
-              onClick={() => { setImageFile(null); setImagePreview(null); }}
-              className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white"
-            >
-              <X className="w-3 h-3" />
-            </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-dashed border-surface-border text-white/40 hover:text-white hover:border-accent-violet/40 text-sm transition-colors"
-          >
-            <Paperclip className="w-4 h-4" />
-            Joindre une image (JPG, PNG — max 5 Mo)
-          </button>
-        )}
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/gif"
-          className="hidden"
-          onChange={e => { const f = e.target.files?.[0]; if (f) handleImage(f); }}
-        />
-      </div>
-
-      {error && (
-        <p className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-2">{error}</p>
-      )}
-
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full btn-primary flex items-center justify-center gap-2 py-3.5 disabled:opacity-60"
-      >
-        {loading ? (
-          <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
-        ) : (
-          <Send className="w-4 h-4" />
-        )}
-        {loading ? "Envoi en cours…" : "Envoyer le message"}
-      </button>
-    </form>
   );
 }
 
@@ -887,10 +628,10 @@ export default function HomePage() {
             transition={{ duration: 0.6, delay: 0.1 }}
             className="text-5xl sm:text-7xl lg:text-8xl font-black leading-tight mb-6"
           >
-            Celebrity{" "}
-            <span className="gradient-text">DeepSwap</span>
+            Fake It{" "}
+            <span className="gradient-text">Until You</span>
             <br />
-            <span className="text-white/90">Ultra HD</span>
+            <span className="text-white/90">Make It</span>
           </motion.h1>
 
           <motion.p
@@ -899,8 +640,9 @@ export default function HomePage() {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="text-xl sm:text-2xl text-white/60 max-w-2xl mx-auto mb-12"
           >
-            Transformez vos photos avec l&apos;IA la plus avancée du marché.
-            Résultats 4K ultra-réalistes en moins de 30 secondes.
+            Photos avec des célébrités, tenues et montres de luxe :
+            montrez la vie que vous voulez. Résultats 4K ultra-réalistes
+            en moins de 30 secondes.
           </motion.p>
 
           <motion.div
@@ -1069,222 +811,19 @@ export default function HomePage() {
         </div>{/* end max-w-7xl */}
       </section>
 
-      {/* ══ VOS IMAGES VOUS APPARTIENNENT ════════════════════════════════ */}
-      <section className="py-24 px-4 sm:px-6">
-        <div className="max-w-5xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="relative rounded-3xl border border-surface-border bg-surface/60 backdrop-blur-sm overflow-hidden px-6 sm:px-12 py-12"
-          >
-            {/* Glow discret en arrière-plan */}
-            <div className="absolute -top-16 left-1/2 -translate-x-1/2 w-96 h-40 bg-accent-violet/10 rounded-full blur-3xl pointer-events-none" />
-
-            {/* Header */}
-            <div className="relative text-center mb-10">
-              <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-accent-violet/10 border border-accent-violet/25 mb-5">
-                <Shield className="w-7 h-7 text-accent-violet" />
-              </div>
-              <h2 className="text-3xl sm:text-4xl font-black mb-3">
-                Vos photos vous appartiennent.{" "}
-                <span className="gradient-text">À 100%.</span>
-              </h2>
-              <p className="text-white/50 text-lg max-w-2xl mx-auto leading-relaxed">
-                AstraCrea ne collecte, ne conserve et ne revend jamais vos images. Chaque transformation IA est exclusivement celle que <em>vous</em> avez demandée — rien de plus.
-              </p>
-            </div>
-
-            {/* 4 garanties */}
-            <div className="relative grid grid-cols-1 sm:grid-cols-2 gap-5">
-              {[
-                {
-                  icon: <Trash2 className="w-5 h-5" />,
-                  title: "Photo supprimée après traitement",
-                  desc: "Votre photo originale est automatiquement effacée de nos serveurs dès la génération terminée. Elle n'est jamais stockée.",
-                },
-                {
-                  icon: <EyeOff className="w-5 h-5" />,
-                  title: "Zéro revente, zéro partage",
-                  desc: "Nous ne partageons jamais vos images avec des tiers, plateformes publicitaires ou bases de données externes.",
-                },
-                {
-                  icon: <Lock className="w-5 h-5" />,
-                  title: "L'IA fait uniquement ce que vous demandez",
-                  desc: "Chaque action de l'IA est strictement limitée à votre requête. Aucune modification non sollicitée n'est effectuée sur vos photos.",
-                },
-                {
-                  icon: <UserCheck className="w-5 h-5" />,
-                  title: "Vous restez l'auteur à 100%",
-                  desc: "Les images générées vous appartiennent entièrement. AstraCrea ne détient aucun droit sur vos créations.",
-                },
-              ].map((item, i) => (
-                <motion.div
-                  key={item.title}
-                  initial={{ opacity: 0, y: 16 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.08 }}
-                  className="flex items-start gap-4 p-5 rounded-2xl bg-surface-hover border border-surface-border"
-                >
-                  <div className="w-10 h-10 rounded-xl bg-accent-violet/10 border border-accent-violet/20 flex items-center justify-center text-accent-violet flex-shrink-0 mt-0.5">
-                    {item.icon}
-                  </div>
-                  <div>
-                    <p className="font-bold text-white mb-1">{item.title}</p>
-                    <p className="text-white/45 text-sm leading-relaxed">{item.desc}</p>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-
-            {/* Ligne de confiance en bas */}
-            <p className="relative text-center text-white/30 text-xs mt-8">
-              🔒 Vos données sont chiffrées en transit (TLS 1.3) et au repos. Conforme RGPD.
-            </p>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ══ POURQUOI ASTRACREA ═══════════════════════════════════════════ */}
-      <section className="py-24 relative overflow-hidden">
-
-        {/* Dégradés de fondu haut & bas */}
-        <div className="absolute top-0 left-0 right-0 h-28 bg-gradient-to-b from-background to-transparent pointer-events-none z-10" />
-        <div className="absolute bottom-0 left-0 right-0 h-28 bg-gradient-to-t from-background to-transparent pointer-events-none z-10" />
-
-        {/* Orbe violet gauche — grand & visible */}
-        <motion.div
-          className="absolute -left-20 top-1/2 -translate-y-1/2 w-[520px] h-[520px] rounded-full bg-accent-violet/30 blur-[90px] pointer-events-none"
-          animate={{ x: [0, 70, -10, 0], y: [0, -50, 20, 0], scale: [1, 1.2, 0.92, 1] }}
-          transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
-        />
-        {/* Orbe neon droite — visible */}
-        <motion.div
-          className="absolute -right-16 top-1/4 w-[420px] h-[420px] rounded-full bg-accent-neon/20 blur-[80px] pointer-events-none"
-          animate={{ x: [0, -60, 15, 0], y: [0, 55, -20, 0], scale: [1, 1.25, 0.95, 1] }}
-          transition={{ duration: 9, repeat: Infinity, ease: "easeInOut", delay: 1.5 }}
-        />
-        {/* Orbe rose centre */}
-        <motion.div
-          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 rounded-full bg-pink-500/15 blur-[70px] pointer-events-none"
-          animate={{ scale: [1, 1.6, 0.85, 1], opacity: [0.4, 0.9, 0.5, 0.4] }}
-          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 2.5 }}
-        />
-        {/* Bande lumineuse bas */}
-        <motion.div
-          className="absolute left-1/2 bottom-6 -translate-x-1/2 w-[700px] h-28 rounded-full bg-accent-violet/25 blur-[60px] pointer-events-none"
-          animate={{ scaleX: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }}
-          transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-        />
-
-        {/* Particules flottantes — plus grandes et plus lumineuses */}
-        {[
-          { x: "6%",  y: "18%", r: 3.5, dur: 4.0, delay: 0.0 },
-          { x: "15%", y: "72%", r: 2.5, dur: 5.5, delay: 1.1 },
-          { x: "28%", y: "8%",  r: 4.0, dur: 3.8, delay: 0.4 },
-          { x: "38%", y: "82%", r: 2.5, dur: 6.2, delay: 2.2 },
-          { x: "54%", y: "12%", r: 3.0, dur: 4.6, delay: 0.9 },
-          { x: "67%", y: "78%", r: 2.0, dur: 5.1, delay: 1.8 },
-          { x: "76%", y: "22%", r: 4.5, dur: 3.5, delay: 0.2 },
-          { x: "86%", y: "60%", r: 3.0, dur: 5.8, delay: 3.1 },
-          { x: "94%", y: "38%", r: 2.5, dur: 4.3, delay: 0.7 },
-          { x: "44%", y: "48%", r: 2.0, dur: 6.8, delay: 1.5 },
-        ].map((p, i) => (
-          <motion.div
-            key={i}
-            className="absolute rounded-full bg-accent-violet pointer-events-none"
-            style={{ left: p.x, top: p.y, width: p.r * 2, height: p.r * 2, boxShadow: `0 0 ${p.r * 3}px rgba(138,43,226,0.8)` }}
-            animate={{ y: [0, -22, 0], opacity: [0.35, 1, 0.35] }}
-            transition={{ duration: p.dur, repeat: Infinity, ease: "easeInOut", delay: p.delay }}
-          />
-        ))}
-
-        {/* Scan-lines lumineuses — bien visibles */}
-        {[0, 1].map((i) => (
-          <motion.div
-            key={i}
-            className="absolute left-0 right-0 h-[2px] pointer-events-none"
-            style={{
-              top: `${22 + i * 48}%`,
-              background: "linear-gradient(90deg, transparent 0%, rgba(138,43,226,0.6) 30%, rgba(57,255,20,0.3) 50%, rgba(138,43,226,0.6) 70%, transparent 100%)",
-            }}
-            animate={{ scaleX: [0.1, 1.3, 0.1], opacity: [0, 1, 0] }}
-            transition={{ duration: 4 + i * 1.5, repeat: Infinity, ease: "easeInOut", delay: i * 2.2 }}
-          />
-        ))}
-
-        {/* ── Contenu ── */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-20">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-4xl sm:text-5xl font-bold mb-4">
-              Pourquoi <span className="gradient-text">AstraCrea</span> ?
-            </h2>
-            <p className="text-white/50 text-lg max-w-xl mx-auto">
-              La technologie la plus avancée pour vos créations visuelles
-            </p>
-          </motion.div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {FEATURES.map((feature, i) => (
-              <motion.div
-                key={feature.title}
-                initial={{ opacity: 0, y: 40 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.12, type: "spring", stiffness: 70, damping: 14 }}
-                whileHover={{ y: -8, scale: 1.03 }}
-                className="card-hover group relative overflow-hidden cursor-default"
-              >
-                {/* Glow border animé au hover */}
-                <motion.div
-                  className="absolute inset-0 rounded-2xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                  style={{
-                    background: "linear-gradient(135deg, rgba(138,43,226,0.12), rgba(57,255,20,0.04))",
-                    boxShadow: "inset 0 0 0 1px rgba(138,43,226,0.35)",
-                  }}
-                />
-                {/* Spotlight qui suit le hover */}
-                <div
-                  className="absolute -inset-px rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
-                  style={{ background: "radial-gradient(400px circle at 50% 0%, rgba(138,43,226,0.08), transparent 60%)" }}
-                />
-
-                {/* Icône flottante */}
-                <motion.div
-                  className="w-12 h-12 bg-accent-violet/10 rounded-xl flex items-center justify-center text-accent-violet mb-4 group-hover:bg-accent-violet/25 transition-colors relative z-10"
-                  animate={{ y: [0, -5, 0] }}
-                  transition={{ duration: 3.2 + i * 0.6, repeat: Infinity, ease: "easeInOut", delay: i * 0.4 }}
-                >
-                  {feature.icon}
-                </motion.div>
-
-                <h3 className="text-lg font-bold mb-2 relative z-10">{feature.title}</h3>
-                <p className="text-white/50 text-sm leading-relaxed relative z-10">{feature.description}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* ══ FAQ ═══════════════════════════════════════════════════════════ */}
-      <section className="py-24 px-4 sm:px-6 bg-surface/20">
-        <div className="max-w-3xl mx-auto">
+      <section className="py-12 px-4 sm:px-6 bg-surface/20">
+        <div className="max-w-2xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mb-14"
+            className="text-center mb-8"
           >
-            <h2 className="text-4xl sm:text-5xl font-bold mb-4">
+            <h2 className="text-2xl sm:text-3xl font-bold mb-2">
               Questions <span className="gradient-text">fréquentes</span>
             </h2>
-            <p className="text-white/50 text-lg">
+            <p className="text-white/50 text-base">
               Tout ce que vous devez savoir avant de commencer
             </p>
           </motion.div>
@@ -1305,206 +844,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ══ COMMENT ÇA MARCHE ════════════════════════════════════════════ */}
-      <section className="py-24 px-4 sm:px-6">
-        <div className="max-w-7xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-4xl sm:text-5xl font-bold mb-4">
-              Comment ça <span className="gradient-text">marche ?</span>
-            </h2>
-          </motion.div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              { step: "01", title: "Uploadez votre photo", desc: "Importez n'importe quelle photo de visage claire (JPG, PNG, WebP)" },
-              { step: "02", title: "Choisissez le style", desc: "Sélectionnez parmi nos 20+ styles Celebrity Ultra HD" },
-              { step: "03", title: "Téléchargez le résultat", desc: "Votre photo transformée en 4K Ultra HD est prête en 30s" },
-            ].map((item, i) => (
-              <motion.div
-                key={item.step}
-                initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.15 }}
-                className="relative"
-              >
-                <div className="card">
-                  <span className="text-6xl font-black gradient-text opacity-30 absolute top-4 right-4">
-                    {item.step}
-                  </span>
-                  <h3 className="text-xl font-bold mb-3">{item.title}</h3>
-                  <p className="text-white/50">{item.desc}</p>
-                </div>
-                {i < 2 && (
-                  <div className="hidden md:block absolute top-1/2 -right-4 w-8 text-accent-violet/50 text-2xl z-10">→</div>
-                )}
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* ══ TUTO SNAP ROUGE ══════════════════════════════════════════════ */}
       <SnapRougeTutoSection />
-
-      {/* ══ CTA FINAL ════════════════════════════════════════════════════ */}
-      <section className="py-32 px-4 sm:px-6 relative overflow-hidden">
-        {/* Fond de base */}
-        <div className="absolute inset-0 bg-gradient-to-r from-accent-violet/10 to-accent-neon/5 pointer-events-none" />
-
-        {/* Dégradés de fondu haut & bas */}
-        <div className="absolute top-0 left-0 right-0 h-36 bg-gradient-to-b from-background via-background/70 to-transparent pointer-events-none z-10" />
-        <div className="absolute bottom-0 left-0 right-0 h-36 bg-gradient-to-t from-background via-background/70 to-transparent pointer-events-none z-10" />
-
-        {/* Orbe violet principal */}
-        <motion.div
-          className="absolute top-1/2 left-1/3 -translate-x-1/2 -translate-y-1/2 w-80 h-80 rounded-full bg-accent-violet/25 blur-3xl pointer-events-none"
-          animate={{ x: [0, 50, -20, 0], y: [0, -35, 20, 0], scale: [1, 1.25, 0.9, 1] }}
-          transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
-        />
-        {/* Orbe neon secondaire */}
-        <motion.div
-          className="absolute bottom-1/3 right-1/4 w-56 h-56 rounded-full bg-accent-neon/12 blur-3xl pointer-events-none"
-          animate={{ x: [0, -40, 10, 0], y: [0, 25, -15, 0], scale: [1, 1.3, 1.05, 1] }}
-          transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 1.5 }}
-        />
-        {/* Orbe rose discret */}
-        <motion.div
-          className="absolute top-1/4 right-1/3 w-40 h-40 rounded-full bg-pink-500/8 blur-2xl pointer-events-none"
-          animate={{ x: [0, 30, -10, 0], y: [0, -20, 30, 0] }}
-          transition={{ duration: 11, repeat: Infinity, ease: "easeInOut", delay: 3 }}
-        />
-
-        {/* Anneaux qui se propagent depuis le centre */}
-        {[0, 1, 2].map((i) => (
-          <motion.div
-            key={i}
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-accent-violet/20 pointer-events-none"
-            style={{ width: 120, height: 120 }}
-            animate={{ scale: [1, 6], opacity: [0.45, 0] }}
-            transition={{ duration: 4.5, repeat: Infinity, ease: "easeOut", delay: i * 1.5 }}
-          />
-        ))}
-
-        {/* Particules flottantes */}
-        {[
-          { x: "20%", y: "25%", size: 3, delay: 0 },
-          { x: "75%", y: "30%", size: 2, delay: 1.2 },
-          { x: "85%", y: "65%", size: 4, delay: 0.6 },
-          { x: "15%", y: "70%", size: 2, delay: 2.1 },
-          { x: "50%", y: "15%", size: 3, delay: 1.8 },
-          { x: "60%", y: "80%", size: 2, delay: 0.3 },
-        ].map((p, i) => (
-          <motion.div
-            key={i}
-            className="absolute rounded-full bg-accent-violet/60 pointer-events-none"
-            style={{ left: p.x, top: p.y, width: p.size, height: p.size }}
-            animate={{ y: [0, -18, 0], opacity: [0.3, 1, 0.3] }}
-            transition={{ duration: 3.5 + i * 0.4, repeat: Infinity, ease: "easeInOut", delay: p.delay }}
-          />
-        ))}
-
-        <motion.div
-          initial={{ opacity: 0, scale: 0.92 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.7, type: "spring", stiffness: 60 }}
-          className="max-w-3xl mx-auto text-center relative z-20"
-        >
-          <motion.h2
-            className="text-4xl sm:text-6xl font-black mb-6"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.15 }}
-          >
-            Prêt à vous <span className="gradient-text">transformer</span> ?
-          </motion.h2>
-          <motion.p
-            className="text-white/60 text-xl mb-10"
-            initial={{ opacity: 0, y: 15 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.25 }}
-          >
-            100 crédits offerts à l&apos;inscription (soit 1 image gratuite). Aucune carte bancaire requise.
-          </motion.p>
-          <motion.div
-            className="relative inline-block"
-            initial={{ opacity: 0, y: 15 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.35 }}
-          >
-            {/* Halo pulsant derrière le bouton */}
-            <motion.div
-              className="absolute inset-0 rounded-xl bg-accent-violet/55 blur-xl pointer-events-none"
-              animate={{ scale: [1, 1.35, 1], opacity: [0.6, 0.15, 0.6] }}
-              transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-            />
-            <motion.div
-              whileHover={{ scale: 1.06 }}
-              whileTap={{ scale: 0.96 }}
-              transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="relative"
-            >
-              <Link href="/dashboard" className="btn-primary text-xl px-10 py-5 inline-flex items-center gap-2 group">
-                Commencer gratuitement
-                <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
-              </Link>
-            </motion.div>
-          </motion.div>
-        </motion.div>
-      </section>
-
-      {/* ══ CONTACT ══════════════════════════════════════════════════════ */}
-      <section className="py-24 px-4 sm:px-6 bg-surface/20">
-        <div className="max-w-5xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-12">
-
-            {/* Left — texte */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              className="lg:col-span-2 flex flex-col justify-center"
-            >
-              <span className="inline-flex items-center gap-2 bg-accent-violet/10 border border-accent-violet/30 text-accent-violet text-xs font-semibold px-3 py-1.5 rounded-full mb-6 w-fit">
-                <Send className="w-3.5 h-3.5" />
-                Contact
-              </span>
-              <h2 className="text-4xl sm:text-5xl font-bold mb-4 leading-tight">
-                Une question ?<br />
-                <span className="gradient-text">Écrivez-nous</span>
-              </h2>
-              <p className="text-white/50 leading-relaxed mb-8">
-                Support, partenariat, retour d&apos;expérience — on vous répond en général sous 24h.
-              </p>
-              <div className="space-y-3 text-sm text-white/40">
-                <p>📧 contact@riseandclose.co</p>
-                <p>⏱️ Réponse sous 24h en moyenne</p>
-                <p>🔒 Vos données restent confidentielles</p>
-              </div>
-            </motion.div>
-
-            {/* Right — form */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              className="lg:col-span-3 card"
-            >
-              <ContactForm />
-            </motion.div>
-
-          </div>
-        </div>
-      </section>
 
       <Footer />
     </div>

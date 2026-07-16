@@ -85,9 +85,14 @@ export default function Footer() {
           <p className="text-white/30 text-sm">
             © 2025 AstraCrea. Tous droits réservés.
           </p>
-          <p className="text-white/20 text-xs">
-            Usage créatif uniquement. Respect des droits à l&apos;image requis.
-          </p>
+          <div className="flex items-center gap-4">
+            <Link href="/contact" className="text-white/30 hover:text-white text-xs transition-colors">
+              Contact
+            </Link>
+            <p className="text-white/20 text-xs">
+              Usage créatif uniquement. Respect des droits à l&apos;image requis.
+            </p>
+          </div>
         </div>
       </div>
     </footer>

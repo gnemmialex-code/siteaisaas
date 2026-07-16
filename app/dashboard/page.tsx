@@ -850,10 +850,12 @@ export default function DashboardPage() {
 
   /* ── Render ────────────────────────────────────────────── */
   return (
-    <div className="min-h-screen bg-background flex overflow-hidden">
+    <div className="min-h-screen max-w-[100vw] bg-background flex overflow-hidden">
 
       {/* ═══════════════ LEFT SIDEBAR ═══════════════ */}
-      <div className={`shrink-0 sticky top-0 h-screen overflow-hidden relative transition-[width] duration-300 ease-in-out lg:w-80 xl:w-[340px] ${sidebarOpen ? "w-60" : "w-0"}`}>
+      {/* Mobile/tablette : panneau superposé (fixed) — ne pousse jamais le contenu hors écran.
+          Desktop (lg+) : colonne sticky dans le flux. */}
+      <div className={`shrink-0 fixed left-0 top-0 z-40 lg:sticky lg:z-auto h-screen overflow-hidden transition-[width] duration-300 ease-in-out lg:w-80 xl:w-[340px] ${sidebarOpen ? "w-60" : "w-0"}`}>
       <aside className="absolute inset-0 min-w-[240px] lg:min-w-[320px] xl:min-w-[340px] border-r border-surface-border flex flex-col bg-background/70 backdrop-blur-xl">
 
         {/* Logo */}
@@ -1001,7 +1003,7 @@ export default function DashboardPage() {
       </button>
 
       {/* ═══════════════ MAIN CONTENT ═══════════════ */}
-      <main className="flex-1 flex flex-col overflow-hidden relative"
+      <main className="flex-1 min-w-0 max-w-full flex flex-col overflow-hidden relative"
         style={{ backgroundImage: "url('/paysage.jpg')", backgroundSize: "cover", backgroundPosition: "center" }}
       >
         {/* Overlay sombre pour la lisibilité */}
