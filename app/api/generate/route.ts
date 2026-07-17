@@ -7,15 +7,16 @@ import {
   type AsyncJobConfig,
   type PipelineInput,
 } from "@/scripts/pipeline";
-import { validateImageFile } from "@/lib/validation";
+import { validateImageFile, validateVideoFile } from "@/lib/validation";
 import { uploadToStorage } from "@/lib/storage";
-import { findAllCelebrities } from "@/lib/celebrity-db";
+import { findAllCelebrities, CELEBRITY_DB } from "@/lib/celebrity-db";
 import { getCelebRefImages } from "@/lib/celebrity-refs";
 
 export const maxDuration = 60;
 
-const MAX_FILE_SIZE = 15 * 1024 * 1024;
-const BUCKET        = "celebswap-images";
+const MAX_FILE_SIZE  = 15 * 1024 * 1024;
+const MAX_VIDEO_SIZE = 70 * 1024 * 1024;
+const BUCKET         = "celebswap-images";
 
 // Crédits déduits par génération selon le tier.
 // Essentiel = qualité 1K, moins de crédits consommés.
@@ -128,7 +129,6 @@ export async function POST(req: NextRequest) {
   // ── Options de génération ──────────────────────────────────────────────────
   const renderStyle        = (formData.get("render_style")    as string | null) ?? undefined;
   const transformIntensity = (formData.get("intensity")       as string | null) ?? "moderate";
-  const outputFormat       = (formData.get("output_format")   as string | null) ?? "auto";
   const preserveOutfit     = (formData.get("preserve_outfit") as string | null) === "1";
 
   try {
@@ -204,7 +204,6 @@ export async function POST(req: NextRequest) {
         qualityTier,
         renderStyle,
         transformIntensity,
-        outputFormat,
         preserveOutfit,
         celebRefImageUrl,
         celebRefImageUrls,
@@ -214,6 +213,99 @@ export async function POST(req: NextRequest) {
       };
 
       jobConfig    = buildAsyncJobConfig(pipelineInput, sourceB64);
+      predictionId = await startAsyncJob(jobConfig);
+
+    } else if (mode === "video") {
+      // ── VIDÉO IA (Seedance 2.0 Fast) ──────────────────────────────────────
+      const videoUrlInput = ((formData.get("video_url") as string) ?? "").trim();
+      const videoFile     = formData.get("video")  as File | null;
+      const videoPrompt   = ((formData.get("prompt") as string) ?? "").trim();
+      let   objectOptions: string[] = [];
+      try { objectOptions = JSON.parse((formData.get("object_options") as string) ?? "[]"); }
+      catch { /* options optionnelles */ }
+
+      if (!videoPrompt) return NextResponse.json({ error: "Prompt requis" }, { status: 400 });
+
+      // La vidéo arrive normalement via upload direct Supabase (video_url) —
+      // la limite de corps de requête Vercel (~4,5 Mo) interdit les gros fichiers
+      // par l'API. Le champ fichier reste accepté en secours (petites vidéos).
+      let videoUrl: string;
+
+      if (videoUrlInput) {
+        let parsed: URL | null = null;
+        try { parsed = new URL(videoUrlInput); } catch { /* invalide */ }
+        const supaHost = process.env.NEXT_PUBLIC_SUPABASE_URL
+          ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).host
+          : "";
+        if (!parsed || !supaHost || parsed.host !== supaHost) {
+          return NextResponse.json({ error: "URL vidéo invalide" }, { status: 400 });
+        }
+        videoUrl = videoUrlInput;
+      } else if (videoFile) {
+        const videoValidation = validateVideoFile(videoFile, MAX_VIDEO_SIZE);
+        if (!videoValidation.valid) {
+          return NextResponse.json({ error: videoValidation.error }, { status: 400 });
+        }
+        const videoBuffer = Buffer.from(await videoFile.arrayBuffer());
+        const videoExt    = videoFile.name.split(".").pop() ?? "mp4";
+        const videoPath   = `inputs/${effectiveUserId}/${generateId()}.${videoExt}`;
+        videoUrl          = await uploadToStorage(supabase, videoBuffer, videoPath, videoFile.type);
+      } else {
+        return NextResponse.json({ error: "Vidéo requise" }, { status: 400 });
+      }
+
+      inputImageForRecord = videoUrl;
+      styleLabel          = "Vidéo IA";
+
+      // Montre choisie dans le sélecteur (prioritaire) + montres / célébrités
+      // détectées dans le prompt → photos de référence Supabase (bucket
+      // celebrity-refs). Seedance accepte jusqu'à 9 images.
+      const watchId       = (formData.get("watch_id") as string | null) ?? "";
+      const selectedWatch = watchId ? CELEBRITY_DB.find((c) => c.id === watchId) : undefined;
+
+      const detectedEntities = [
+        ...(selectedWatch ? [selectedWatch] : []),
+        ...findAllCelebrities(videoPrompt).filter((c) => c.id !== watchId),
+      ].slice(0, 3);
+      const refImageUrls: string[] = [];
+      const refEntities: { name: string; visual_description: string; refCount: number; wear?: boolean }[] = [];
+
+      for (const entity of detectedEntities) {
+        const wear = entity.id === watchId || undefined;
+        const remaining = 9 - refImageUrls.length;
+        if (remaining <= 0) {
+          refEntities.push({ name: entity.name, visual_description: entity.visual_description, refCount: 0, wear });
+          continue;
+        }
+        const urls = (await getCelebRefImages(
+          entity.id,
+          entity.reference_images ?? [],
+          entity.reference_image_url,
+        )).slice(0, remaining);
+        refImageUrls.push(...urls);
+        refEntities.push({
+          name:               entity.name,
+          visual_description: entity.visual_description,
+          refCount:           urls.length,
+          wear,
+        });
+        if (urls.length > 0) {
+          console.log(`[Generate] Vidéo IA — ${entity.name}: ${urls.length} reference image(s) loaded`);
+        }
+      }
+
+      const pipelineInput: PipelineInput = {
+        mode:               "video",
+        videoUrl,
+        customPrompt:       videoPrompt,
+        videoObjectOptions: objectOptions,
+        videoRefEntities:   refEntities,
+        celebRefImageUrls:  refImageUrls,
+        celebRefCount:      refImageUrls.length,
+        qualityTier,
+      };
+
+      jobConfig    = buildAsyncJobConfig(pipelineInput, "");
       predictionId = await startAsyncJob(jobConfig);
 
     } else {

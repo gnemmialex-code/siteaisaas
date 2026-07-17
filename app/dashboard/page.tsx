@@ -15,6 +15,7 @@ import {
 import { supabase } from "@/lib/supabase";
 import { isPaidPlan } from "@/lib/plan";
 import { resizeImageFile } from "@/lib/resize-image";
+import { WATCH_OPTIONS, WATCH_BRANDS } from "@/lib/watch-options";
 import UploadBox from "../components/UploadBox";
 import VideoUploadBox from "../components/VideoUploadBox";
 import { STYLES, Style } from "../components/StyleSelector";
@@ -76,13 +77,6 @@ const INTENSITY_OPTIONS: GenOption[] = [
   { id: "ultra",    label: "⚡ Ultra",    tier: "elite" },
 ];
 
-const FORMAT_OPTIONS: GenOption[] = [
-  { id: "auto",      label: "◻ Auto"                      },
-  { id: "portrait",  label: "▮ Portrait",  tier: "pro"    },
-  { id: "landscape", label: "▬ Paysage",   tier: "pro"    },
-  { id: "square",    label: "⬛ Carré",     tier: "pro"    },
-];
-
 function planQualityBadge(plan?: string): { label: string; color: string } {
   if (plan?.includes("ultra")) return { label: "8K Elite ✨", color: "text-amber-400 border-amber-400/40 bg-amber-400/10" };
   if (plan?.includes("pro"))   return { label: "4K Pro ⚡",   color: "text-accent-violet border-accent-violet/40 bg-accent-violet/10" };
@@ -113,6 +107,23 @@ function LockedOverlay({ onUnlock, compact = false }: { onUnlock: () => void; co
       </button>
     </div>
   );
+}
+
+/* ─── Vidéo IA : limites d'upload ─────────────────────────
+   L'upload passe en direct vers Supabase Storage (la limite de corps de
+   requête des fonctions Vercel (~4,5 Mo) interdit de passer par l'API). */
+const MAX_VIDEO_MB      = 70;
+const MAX_VIDEO_SECONDS = 10;
+
+function getVideoDuration(file: File): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const v = document.createElement("video");
+    const url = URL.createObjectURL(file);
+    v.preload = "metadata";
+    v.onloadedmetadata = () => { URL.revokeObjectURL(url); resolve(v.duration); };
+    v.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Vidéo illisible")); };
+    v.src = url;
+  });
 }
 
 function userPlanTier(plan?: string): "essentiel" | "pro" | "elite" {
@@ -468,7 +479,6 @@ export default function DashboardPage() {
   /* generation precision options */
   const [renderStyle,   setRenderStyle]   = useState<string | null>(null);
   const [intensity,     setIntensity]     = useState<string>("moderate");
-  const [genFormat,     setGenFormat]     = useState<string>("auto");
   const [preserveOutfit,setPreserveOutfit]= useState(false);
 
   /* debug / prompt preview */
@@ -489,6 +499,7 @@ export default function DashboardPage() {
   const [videoPreview,      setVideoPreview]       = useState<string | null>(null);
   const [videoPrompt,       setVideoPrompt]        = useState("");
   const [videoObjectOptions,setVideoObjectOptions] = useState<Set<ObjectOption>>(new Set());
+  const [videoWatchId,      setVideoWatchId]       = useState("");
 
   /* common */
   const [consent,       setConsent]       = useState(false);
@@ -498,6 +509,8 @@ export default function DashboardPage() {
   const [showPaywall,   setShowPaywall]   = useState(false);
   const [resultUrl,     setResultUrl]     = useState<string | null>(null);
   const [resultStyle,   setResultStyle]   = useState<string>("");
+  // Vidéo IA (Seedance) renvoie un mp4 — affiché dans <video>, pas <Image>
+  const resultIsVideo = !!resultUrl && /\.(mp4|webm|mov)$/i.test(resultUrl.split("?")[0]);
   const [deletingId,       setDeletingId]       = useState<string | null>(null);
   const [deletingAll,      setDeletingAll]      = useState(false);
   const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
@@ -658,8 +671,9 @@ export default function DashboardPage() {
     try {
       const blob      = await (await fetch(url)).blob();
       const objectUrl = URL.createObjectURL(blob);
+      const isVideo   = /\.(mp4|webm|mov)$/i.test(url.split("?")[0]) || blob.type.startsWith("video/");
       const a         = document.createElement("a");
-      a.href = objectUrl; a.download = `astracrea-${id}.png`; a.click();
+      a.href = objectUrl; a.download = `astracrea-${id}.${isVideo ? "mp4" : "png"}`; a.click();
       URL.revokeObjectURL(objectUrl);
     } catch { toast.error("Erreur de téléchargement"); }
   };
@@ -701,7 +715,6 @@ export default function DashboardPage() {
           style_label:     selectedStyle?.label ?? "Custom",
           render_style:    renderStyle ?? "",
           intensity,
-          output_format:   genFormat,
           preserve_outfit: preserveOutfit ? "1" : "0",
         }),
       });
@@ -756,7 +769,6 @@ export default function DashboardPage() {
       if (freePrompt.trim())    formData.append("custom_prompt",   freePrompt.trim());
       if (renderStyle)          formData.append("render_style",    renderStyle);
       formData.append("intensity",       intensity);
-      formData.append("output_format",   genFormat);
       formData.append("preserve_outfit", preserveOutfit ? "1" : "0");
       formData.append("mode", "style");
     } else if (genType === "swapface") {
@@ -770,9 +782,46 @@ export default function DashboardPage() {
     } else if (genType === "video") {
       if (!videoFile)   { setError("Veuillez uploader une vidéo."); return; }
       if (!videoPrompt) { setError("Veuillez entrer un prompt."); return; }
-      formData.append("video",          videoFile);
+      if (videoFile.size > MAX_VIDEO_MB * 1024 * 1024) {
+        setError(`Vidéo trop lourde : ${MAX_VIDEO_MB} Mo maximum.`); return;
+      }
+      try {
+        const duration = await getVideoDuration(videoFile);
+        if (duration > MAX_VIDEO_SECONDS + 0.5) {
+          setError(`Vidéo trop longue : ${MAX_VIDEO_SECONDS} secondes maximum (la vôtre fait ${Math.round(duration)}s).`);
+          return;
+        }
+      } catch {
+        setError("Impossible de lire cette vidéo. Utilisez un MP4, MOV ou WebM valide.");
+        return;
+      }
+
+      // Upload direct Supabase Storage (bypass de l'API — vidéos jusqu'à 70 Mo)
+      const { data: { user: authedUser } } = await supabase.auth.getUser();
+      if (!authedUser) { setShowAuthGate(true); return; }
+
+      setIsGenerating(true);
+      setGenProgress(0);
+      cancelRef.current = false;
+      toast("Envoi de la vidéo…", { icon: "📤" });
+
+      const ext  = videoFile.name.split(".").pop()?.toLowerCase() ?? "mp4";
+      const path = `inputs/${authedUser.id}/${Date.now().toString(36)}${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("celebswap-images")
+        .upload(path, videoFile, { contentType: videoFile.type, cacheControl: "3600" });
+
+      if (uploadError) {
+        setIsGenerating(false);
+        setError(`Échec de l'envoi de la vidéo : ${uploadError.message}`);
+        return;
+      }
+      const { data: pub } = supabase.storage.from("celebswap-images").getPublicUrl(path);
+
+      formData.append("video_url",      pub.publicUrl);
       formData.append("prompt",         videoPrompt);
       formData.append("object_options", JSON.stringify([...videoObjectOptions]));
+      if (videoWatchId) formData.append("watch_id", videoWatchId);
       formData.append("mode",           "video");
     }
 
@@ -1231,16 +1280,6 @@ export default function DashboardPage() {
                             onLocked={(rp, f) => setUpgradeTarget({ plan: rp, feature: f })}
                           />
 
-                          {/* Format de sortie */}
-                          <GenOptionChips
-                            title="Format de sortie"
-                            options={FORMAT_OPTIONS}
-                            selected={genFormat}
-                            onSelect={setGenFormat}
-                            planTier={userPlanTier(stats?.plan)}
-                            onLocked={(rp, f) => setUpgradeTarget({ plan: rp, feature: f })}
-                          />
-
                           {/* Conserver la tenue */}
                           {(() => {
                             const outfitLocked = userPlanTier(stats?.plan) === "essentiel";
@@ -1354,7 +1393,25 @@ export default function DashboardPage() {
                             className="w-full bg-surface border border-surface-border rounded-xl px-3 py-2 text-white text-sm placeholder-white/20 focus:outline-none focus:border-accent-violet/60 resize-none" />
                         </div>
                         <div className="bg-surface/70 backdrop-blur-xl border border-surface-border rounded-2xl p-4">
-                          <h2 className="font-semibold text-sm mb-3 flex items-center gap-2"><StepBadge n={3} />Modifier un objet <span className="text-white/30 text-xs font-normal">(optionnel)</span></h2>
+                          <h2 className="font-semibold text-sm mb-3 flex items-center gap-2"><StepBadge n={3} />Modèle de montre <span className="text-white/30 text-xs font-normal">(optionnel)</span></h2>
+                          <select
+                            value={videoWatchId}
+                            onChange={e => setVideoWatchId(e.target.value)}
+                            className="w-full bg-surface border border-surface-border rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-accent-violet/60"
+                          >
+                            <option value="">Aucune montre</option>
+                            {WATCH_BRANDS.map(brand => (
+                              <optgroup key={brand} label={brand}>
+                                {WATCH_OPTIONS.filter(w => w.brand === brand).map(w => (
+                                  <option key={w.id} value={w.id}>{w.name}</option>
+                                ))}
+                              </optgroup>
+                            ))}
+                          </select>
+                          <p className="text-white/30 text-xs mt-2">💡 L&apos;IA utilise les vraies photos de référence de la montre pour un rendu fidèle.</p>
+                        </div>
+                        <div className="bg-surface/70 backdrop-blur-xl border border-surface-border rounded-2xl p-4">
+                          <h2 className="font-semibold text-sm mb-3 flex items-center gap-2"><StepBadge n={4} />Modifier un objet <span className="text-white/30 text-xs font-normal">(optionnel)</span></h2>
                           <div className="space-y-2">
                             {([
                               {id:"addObject" as ObjectOption, icon:PlusCircle, label:"Ajouter un objet", desc:"Insère dans la vidéo"},
@@ -1379,7 +1436,7 @@ export default function DashboardPage() {
                         </div>
                       </div>
                       <div className="lg:col-span-1">
-                        <GenerateCard consent={consent} setConsent={setConsent} error={error} onGenerate={handleGenerate} onCancel={handleCancel} isGenerating={isGenerating} canGenerate={!!(videoFile && videoPrompt && consent)} credits={150} step={4} />
+                        <GenerateCard consent={consent} setConsent={setConsent} error={error} onGenerate={handleGenerate} onCancel={handleCancel} isGenerating={isGenerating} canGenerate={!!(videoFile && videoPrompt && consent)} credits={150} step={5} />
                       </div>
                     </div>
                   )}
@@ -1404,7 +1461,11 @@ export default function DashboardPage() {
                         {resultUrl ? (
                           <div>
                             <div className="relative aspect-square bg-surface-hover overflow-hidden">
-                              <Image src={resultUrl} alt={resultStyle} fill className={`object-contain ${isPaid ? "" : "blur-2xl scale-110"}`} />
+                              {resultIsVideo ? (
+                                <video src={resultUrl} controls autoPlay loop playsInline className={`absolute inset-0 w-full h-full object-contain ${isPaid ? "" : "blur-2xl scale-110"}`} />
+                              ) : (
+                                <Image src={resultUrl} alt={resultStyle} fill className={`object-contain ${isPaid ? "" : "blur-2xl scale-110"}`} />
+                              )}
                               {!isPaid && <LockedOverlay onUnlock={goToSubscription} />}
                             </div>
                             <div className="p-4 space-y-3">
@@ -1516,7 +1577,11 @@ export default function DashboardPage() {
                           {resultUrl && !isGenerating ? (
                             <div>
                               <div className="relative bg-surface-hover overflow-hidden" style={{ height: "60vh" }}>
-                                <Image src={resultUrl} alt={resultStyle || "Résultat"} fill className={`object-contain ${isPaid ? "" : "blur-2xl scale-110"}`} />
+                                {resultIsVideo ? (
+                                  <video src={resultUrl} controls autoPlay loop playsInline className={`absolute inset-0 w-full h-full object-contain ${isPaid ? "" : "blur-2xl scale-110"}`} />
+                                ) : (
+                                  <Image src={resultUrl} alt={resultStyle || "Résultat"} fill className={`object-contain ${isPaid ? "" : "blur-2xl scale-110"}`} />
+                                )}
                                 {!isPaid && <LockedOverlay onUnlock={goToSubscription} />}
                               </div>
                               <div className="p-6 flex items-center gap-4">
@@ -1647,7 +1712,11 @@ export default function DashboardPage() {
                         <motion.div key={gen.id} initial={{opacity:0,scale:0.9}} animate={{opacity:1,scale:1}} transition={{delay:i*0.04}}
                           className="group relative rounded-xl overflow-hidden border border-surface-border hover:border-accent-violet/40 transition-all">
                           <div className="aspect-square relative overflow-hidden">
-                            <Image src={gen.output_image_url} alt={gen.style} fill className={`object-cover ${isPaid ? "" : "blur-xl scale-110"}`} />
+                            {/\.(mp4|webm|mov)$/i.test(gen.output_image_url.split("?")[0]) ? (
+                              <video src={gen.output_image_url} muted loop playsInline autoPlay className={`absolute inset-0 w-full h-full object-cover ${isPaid ? "" : "blur-xl scale-110"}`} />
+                            ) : (
+                              <Image src={gen.output_image_url} alt={gen.style} fill className={`object-cover ${isPaid ? "" : "blur-xl scale-110"}`} />
+                            )}
                             {!isPaid && <LockedOverlay onUnlock={goToSubscription} compact />}
                           </div>
                           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/60 transition-all flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 gap-2 z-30">

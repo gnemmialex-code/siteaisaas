@@ -13,7 +13,7 @@ interface VideoUploadBoxProps {
   maxSizeMB?: number;
 }
 
-const MAX_SIZE_MB = 100;
+const MAX_SIZE_MB = 70;
 const ALLOWED_TYPES = ["video/mp4", "video/quicktime", "video/webm"];
 
 export default function VideoUploadBox({
@@ -109,7 +109,7 @@ export default function VideoUploadBox({
                 {isDragActive ? "Déposez ici !" : "Glissez votre vidéo"}
               </p>
               <p className="text-white/40 text-sm mb-4">ou cliquez pour sélectionner</p>
-              <p className="text-white/25 text-xs">MP4, MOV, WebM • Max {maxSizeMB}MB</p>
+              <p className="text-white/25 text-xs">MP4, MOV, WebM • Max {maxSizeMB} Mo • 10 s max</p>
             </div>
           </motion.div>
         )}

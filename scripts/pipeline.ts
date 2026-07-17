@@ -7,6 +7,7 @@ const replicate = new Replicate({
 
 const MODELS = {
   faceSwap: "codeplugtech/face-swap:278a81e7ebb22db98bcba54de985d22cc1abeead2754eb1f2af717247be69b34",
+  video:    "bytedance/seedance-2.0-fast",
 } as const;
 
 // ─── Créer mode: img2img fallback chain ──────────────────────────────────────
@@ -74,7 +75,14 @@ const RENDER_STYLE_PROMPTS: Record<string, string> = {
 };
 
 export interface PipelineInput {
-  mode:               "style" | "swapface";
+  mode:               "style" | "swapface" | "video";
+  /** Vidéo IA : URL publique de la vidéo source uploadée ([Video1] pour Seedance) */
+  videoUrl?:          string;
+  /** Vidéo IA : options "addObject" / "replaceObject" cochées dans le dashboard */
+  videoObjectOptions?: string[];
+  /** Vidéo IA : entités détectées dans le prompt (montres, célébrités) avec leurs refs.
+   *  `wear: true` = montre choisie dans le sélecteur → portée au poignet du sujet. */
+  videoRefEntities?:  { name: string; visual_description: string; refCount: number; wear?: boolean }[];
   inputImageUrl?:     string;
   styleId?:           string;
   stylePrompt?:       string;
@@ -396,6 +404,74 @@ function buildStylePrompt(
   return { positive, negative: NEG };
 }
 
+// ─── VIDEO PROMPT BUILDER (Seedance 2.0) ─────────────────────────────────────
+//
+// Seedance attend un prompt naturel, écrit comme dans son playground :
+// les entrées se référencent [Video1], [Image1], [Image2]…
+// Pas de contrat système géant (conçu pour l'img2img, contre-productif ici).
+
+function buildVideoPrompt(
+  customPrompt:  string,
+  objectOptions: string[] = [],
+  refEntities:   { name: string; visual_description: string; refCount: number; wear?: boolean }[] = [],
+): string {
+  const userInstruction = translateToEnglish(customPrompt.trim())
+    || "Enhance this video with cinematic quality.";
+
+  const parts: string[] = [];
+
+  // La vidéo source uploadée est toujours [Video1]
+  parts.push(`Based on the source video [Video1]: ${userInstruction}.`);
+
+  if (objectOptions.includes("replaceObject")) {
+    parts.push(
+      "Replace the corresponding object in [Video1] frame by frame, " +
+      "perfectly tracking its position, perspective, motion and lighting. " +
+      "Everything else in the video stays exactly as in [Video1].",
+    );
+  }
+  if (objectOptions.includes("addObject")) {
+    parts.push(
+      "Insert the requested element seamlessly into the scene of [Video1], " +
+      "matching the original camera motion, lighting and framing. " +
+      "Everything else in the video stays exactly as in [Video1].",
+    );
+  }
+
+  // Références visuelles (montres de luxe, célébrités) — [Image1], [Image2]…
+  let imgIdx = 1;
+  for (const ent of refEntities) {
+    if (ent.refCount <= 0) {
+      parts.push(
+        `${ent.name} appearance reference: ${ent.visual_description}`,
+      );
+      continue;
+    }
+    const range = ent.refCount === 1
+      ? `[Image${imgIdx}]`
+      : `[Image${imgIdx}] to [Image${imgIdx + ent.refCount - 1}]`;
+    parts.push(
+      `${range} ${ent.refCount === 1 ? "shows" : "show"} the exact ${ent.name} — ` +
+      `${ent.visual_description} ` +
+      `Reproduce it with perfect fidelity to these reference images: ` +
+      `same shape, materials, colors, proportions and distinctive details, ` +
+      `consistent in every frame.` +
+      (ent.wear
+        ? ` The person in [Video1] wears this exact ${ent.name} on their wrist, ` +
+          `clearly visible and naturally integrated with their movements.`
+        : ""),
+    );
+    imgIdx += ent.refCount;
+  }
+
+  parts.push(
+    "Photorealistic result, natural motion, no morphing, no flickering, " +
+    "temporally consistent across all frames.",
+  );
+
+  return parts.join(" ");
+}
+
 // ─── img2img strength — controlled by transformIntensity ─────────────────────
 //
 // lower = preserve more of the original person
@@ -442,6 +518,11 @@ function translateToEnglish(text: string): string {
     [/\b(?:mets?(?:\s+moi)?|met(?:\s+moi)?|fais(?:\s+moi)?|donne(?:\s+moi)?|place(?:\s+moi)?|change(?:\s+moi)?|transforme(?:\s+moi)?|rends?(?:\s+moi)?)\b/gi, ""],
     [/\b(?:s'il te plaît|stp|svp|please)\b/gi, ""],
     [/\bajoute(?:r)?\s+/gi, "add "],
+    [/\bremplace(?:r)?\s+/gi, "replace "],
+    [/\bma\s+montre\b/gi, "my watch"],
+    [/\bsa\s+montre\b/gi, "their watch"],
+    [/\bau\s+poignet\b/gi, "on the wrist"],
+    [/\bpar\s+(?=la\b|le\b|une?\b|the\b|a\b)/gi, "with "],
     [/\bà\s+côté\s+de\b/gi, "next to"],
     [/\bà\s+coté\s+de\b/gi, "next to"],
     [/\bcôte\s+à\s+côte\b/gi, "side by side"],
@@ -588,7 +669,8 @@ function extractUrl(output: unknown): string {
 // ─── ASYNC JOB API ────────────────────────────────────────────────────────────
 
 export type AsyncJobConfig = {
-  mode:               "style" | "swapface";
+  mode:               "style" | "swapface" | "video";
+  videoUrl?:          string;
   qualityTier:        keyof typeof QUALITY_SETTINGS;
   prompt?:            string;
   negPrompt?:         string;
@@ -625,6 +707,25 @@ export function buildAsyncJobConfig(
 
   if (input.mode === "swapface") {
     return { mode: "swapface", qualityTier: tier, sourceB64 };
+  }
+
+  if (input.mode === "video") {
+    // ── Seedance 2.0 Fast (vidéo IA) ────────────────────────────────────────
+    // Le prompt est écrit comme s'il était saisi directement dans le modèle :
+    // [Video1] = vidéo source, [Image1..N] = photos de référence Supabase.
+    const refUrls = (input.celebRefImageUrls ?? []).slice(0, 9); // limite Seedance
+    return {
+      mode:              "video",
+      qualityTier:       tier,
+      videoUrl:          input.videoUrl,
+      prompt:            buildVideoPrompt(
+        input.customPrompt ?? "",
+        input.videoObjectOptions ?? [],
+        input.videoRefEntities   ?? [],
+      ),
+      celebRefImageUrls: refUrls,
+      celebRefCount:     refUrls.length,
+    };
   }
 
   // ── nano-banana-pro (style / scene transformation) ───────────────────────
@@ -670,6 +771,33 @@ export async function startAsyncJob(
       swap_image:  config.sourceB64!,
       input_image: targetB64!,
     });
+    return p.id;
+  }
+
+  if (config.mode === "video") {
+    // ── Seedance 2.0 Fast ────────────────────────────────────────────────────
+    // reference_videos / reference_images acceptent des URLs directes.
+    // reference_images est incompatible avec image (first frame) — on n'utilise
+    // que le mode références, qui couvre montage vidéo + fidélité produit.
+    if (!config.videoUrl) throw new Error("Vidéo source manquante pour la génération");
+
+    const input: Record<string, unknown> = {
+      prompt:           config.prompt ?? "",
+      reference_videos: [config.videoUrl],
+      resolution:       "720p",
+      aspect_ratio:     "adaptive",
+      duration:         -1,   // durée intelligente : le modèle suit la vidéo source
+      generate_audio:   true,
+    };
+
+    const refs = (config.celebRefImageUrls ?? []).slice(0, 9);
+    if (refs.length > 0) input.reference_images = refs;
+
+    console.log(`[Pipeline] video model: ${MODELS.video}`);
+    console.log(`[Pipeline] Prompt: "${(config.prompt ?? "").slice(0, 300)}"`);
+    console.log(`[Pipeline] Reference images: ${refs.length}`);
+
+    const p = await createPred(MODELS.video, input);
     return p.id;
   }
 

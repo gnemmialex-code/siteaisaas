@@ -341,7 +341,7 @@ export default function PricingPage() {
         </motion.div>
 
         {/* Plans */}
-        <div className="plans-grid grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+        <div className="plans-grid grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-6 mb-16">
           {PLANS.map((plan, i) => {
             const monthlyPrice = plan.priceMonthly;
             const yearlyTotal = +(monthlyPrice * 12 * 0.83).toFixed(2);
@@ -353,8 +353,10 @@ export default function PricingPage() {
             const isPro   = plan.badge === "Populaire";
             const isElite = plan.name === "Elite";
 
-            const baseScale  = isPro ? 1.06 : 1;
-            const grownScale = isPro ? 1.11 : 1.05;
+            // Mobile : cartes légèrement réduites (l'espacement du gap ressort davantage),
+            // l'effet de zoom au scroll est conservé mais reste sous la taille desktop.
+            const baseScale  = isMobile ? 0.92 : (isPro ? 1.06 : 1);
+            const grownScale = isMobile ? 0.96 : (isPro ? 1.11 : 1.05);
 
             return (
               <motion.div
