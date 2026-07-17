@@ -612,53 +612,6 @@ export default function PricingPage() {
           </p>
         </motion.div>
 
-        {/* ── Bannière Satisfait ou remboursé ── */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="mb-12"
-        >
-          <div className="relative overflow-hidden rounded-2xl border border-green-500/30 bg-green-500/5 px-6 py-8 text-center">
-            {/* Glow décoratif */}
-            <div className="absolute inset-0 pointer-events-none">
-              <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-64 h-32 bg-green-500/15 rounded-full blur-3xl" />
-            </div>
-
-            <div className="relative z-10 flex flex-col items-center gap-3">
-              {/* Icône */}
-              <div className="w-14 h-14 rounded-2xl bg-green-500/15 border border-green-500/30 flex items-center justify-center">
-                <ShieldCheck className="w-7 h-7 text-green-400" />
-              </div>
-
-              {/* Titre */}
-              <h2 className="text-2xl sm:text-3xl font-black text-white">
-                Satisfait ou <span className="text-green-400">remboursé</span>
-              </h2>
-
-              {/* Sous-titre */}
-              <p className="text-white/60 text-base max-w-md">
-                Pas convaincu par vos premières générations ? Contactez-nous dans les{" "}
-                <strong className="text-white/85">48 heures</strong> suivant votre souscription et nous vous remboursons intégralement — sans question.
-              </p>
-
-              {/* Pills de garantie */}
-              <div className="flex flex-wrap justify-center gap-3 mt-1">
-                {[
-                  "Remboursement en 48h",
-                  "Sans justificatif",
-                  "100% intégral",
-                ].map((label) => (
-                  <span key={label} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/25 text-green-400 text-sm font-medium">
-                    <Check className="w-3.5 h-3.5 flex-shrink-0" />
-                    {label}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
         {/* Explication crédits */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
