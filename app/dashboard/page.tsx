@@ -510,7 +510,12 @@ export default function DashboardPage() {
     // Vue initiale + retours de paiement via l'URL (?view=snaprouge, ?payment=snap_success)
     const params = new URLSearchParams(window.location.search);
     const view = params.get("view");
-    if (view && NAV_ITEMS.some(n => n.id === view)) setNavView(view as NavView);
+    if (view === "subscription") {
+      // La vue Abonnement vit désormais sur /pricing
+      router.push("/pricing");
+    } else if (view && NAV_ITEMS.some(n => n.id === view)) {
+      setNavView(view as NavView);
+    }
     if (params.get("payment") === "snap_success") {
       toast.success("🔥 Paiement reçu ! Votre accès Snap Rouge s'active dans quelques secondes…", { duration: 6000 });
       setTimeout(() => fetchStats(), 4000);
@@ -896,9 +901,7 @@ export default function DashboardPage() {
   const goToSubscription = () => {
     setResultUrl(null);
     setResultStyle("");
-    setNavView("subscription");
-    setSidebarOpen(false);
-    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+    router.push("/pricing");
   };
 
   const userInitial = userEmail?.[0]?.toUpperCase() ?? "?";
@@ -983,7 +986,11 @@ export default function DashboardPage() {
               key={item.id}
               item={item}
               active={navView === item.id}
-              onClick={() => { setNavView(item.id); setSidebarOpen(false); }}
+              onClick={() => {
+                // Abonnement → page /pricing (pas de vue interne)
+                if (item.id === "subscription") { router.push("/pricing"); return; }
+                setNavView(item.id); setSidebarOpen(false);
+              }}
             />
           ))}
         </nav>
@@ -1885,12 +1892,12 @@ export default function DashboardPage() {
                             <span className="text-accent-violet font-bold">Pro</span> et{" "}
                             <span className="text-amber-400 font-bold">Elite</span>
                           </p>
-                          <button
-                            onClick={() => setNavView("subscription")}
+                          <Link
+                            href="/pricing"
                             className="text-accent-violet text-sm font-semibold hover:underline"
                           >
                             Voir les abonnements →
-                          </button>
+                          </Link>
                         </div>
                       </div>
                     )}
