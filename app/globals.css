@@ -169,7 +169,13 @@ body {
 .plan-card {
   transition: filter 0.25s ease;
 }
-.plans-grid:hover .plan-card:not(:hover) {
+@media (hover: hover) {
+  .plans-grid:hover .plan-card:not(:hover) {
+    filter: brightness(0.6);
+  }
+}
+/* Mobile/tactile : la carte hors du centre de l'écran est assombrie */
+.plan-card-dimmed {
   filter: brightness(0.6);
 }
 

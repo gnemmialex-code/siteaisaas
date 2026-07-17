@@ -150,9 +150,10 @@ export default function PricingPage() {
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [loadingPack, setLoadingPack] = useState<string | null>(null);
 
-  /* Mobile : la formule face à l'écran s'agrandit (via whileInView).
-     Desktop : agrandissement au survol de la souris (via whileHover). */
+  /* Mobile : la formule face à l'écran s'agrandit (via whileInView) et les
+     autres s'assombrissent — équivalent tactile du survol souris sur desktop. */
   const [isMobile, setIsMobile] = useState(false);
+  const [activeCard, setActiveCard] = useState<number | null>(null);
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 767px)");
     const update = () => setIsMobile(mq.matches);
@@ -219,24 +220,29 @@ export default function PricingPage() {
     <div className="min-h-screen bg-background relative overflow-x-hidden">
       {/* ── Fond animé global ── */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        {/* Halos en radial-gradient (pas de filter: blur — rendu fiable sur mobile/Safari) */}
         <motion.div
-          className="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full bg-accent-violet/10 blur-[100px]"
+          className="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(138,43,226,0.30) 0%, rgba(138,43,226,0.12) 40%, transparent 70%)" }}
           animate={{ x: [0, 60, -20, 0], y: [0, 40, -15, 0], scale: [1, 1.2, 0.9, 1] }}
           transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
         />
         <motion.div
-          className="absolute top-1/3 -right-40 w-[420px] h-[420px] rounded-full bg-accent-neon/7 blur-[90px]"
+          className="absolute top-1/3 -right-40 w-[420px] h-[420px] rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(0,229,255,0.22) 0%, rgba(0,229,255,0.08) 40%, transparent 70%)" }}
           animate={{ x: [0, -50, 20, 0], y: [0, 60, -20, 0], scale: [1, 1.3, 0.95, 1] }}
           transition={{ duration: 14, repeat: Infinity, ease: "easeInOut", delay: 2 }}
         />
         <motion.div
-          className="absolute bottom-0 left-1/3 w-[360px] h-[360px] rounded-full bg-accent-violet/8 blur-[80px]"
+          className="absolute bottom-0 left-1/3 w-[360px] h-[360px] rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(138,43,226,0.25) 0%, rgba(138,43,226,0.10) 40%, transparent 70%)" }}
           animate={{ x: [0, 40, -30, 0], y: [0, -40, 20, 0], scale: [1, 1.15, 0.92, 1] }}
           transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 4 }}
         />
         {/* Orbe rose supplémentaire — centre */}
         <motion.div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] rounded-full bg-pink-500/6 blur-[80px]"
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(236,72,153,0.20) 0%, rgba(236,72,153,0.08) 40%, transparent 70%)" }}
           animate={{ scale: [1, 1.5, 0.9, 1], opacity: [0.4, 0.9, 0.5, 0.4] }}
           transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 1 }}
         />
@@ -356,11 +362,20 @@ export default function PricingPage() {
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0, scale: baseScale }}
                 whileHover={{ scale: grownScale }}
-                {...(isMobile ? { whileInView: { scale: grownScale }, viewport: { amount: 0.6 } } : {})}
+                {...(isMobile
+                  ? {
+                      /* Les cartes sont plus hautes que l'écran d'un téléphone :
+                         un seuil bas + une marge centrée garantissent le déclenchement. */
+                      whileInView: { scale: grownScale },
+                      viewport: { amount: 0.3, margin: "-15% 0px -15% 0px" },
+                      onViewportEnter: () => setActiveCard(i),
+                      onViewportLeave: () => setActiveCard((prev) => (prev === i ? null : prev)),
+                    }
+                  : {})}
                 transition={{ delay: i * 0.1, scale: { delay: 0, duration: 0.25 } }}
                 className={`plan-card relative card border-2 ${plan.color} flex flex-col bg-surface ${
                   isPro ? "z-10" : ""
-                }`}
+                } ${isMobile && activeCard !== null && activeCard !== i ? "plan-card-dimmed" : ""}`}
               >
                 {/* Étincelles qui s'échappent du haut de la carte (Pro : vertes, Elite : or) */}
                 {(isPro || isElite) && (
