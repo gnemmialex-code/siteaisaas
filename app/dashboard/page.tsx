@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { isPaidPlan } from "@/lib/plan";
-import { resizeImageFile } from "@/lib/resize-image";
+import { resizeImageFile, getSupportedAspectRatio } from "@/lib/resize-image";
 import { WATCH_OPTIONS, WATCH_BRANDS } from "@/lib/watch-options";
 import UploadBox from "../components/UploadBox";
 import VideoUploadBox from "../components/VideoUploadBox";
@@ -761,6 +761,8 @@ export default function DashboardPage() {
       if (!selectedStyle && !freePrompt.trim()) { setError("Veuillez entrer une description."); return; }
       const enriched = buildEnrichedPrompt(selectedStyle, clothing, mood, styleBg, accessory);
       formData.append("image", await resizeImageFile(styleFile));
+      // Conserve l'orientation (vertical / carré / horizontal) de la photo d'entrée.
+      formData.append("aspect_ratio", await getSupportedAspectRatio(styleFile));
       if (selectedStyle) {
         formData.append("style_id",    selectedStyle.id);
         formData.append("style_label", selectedStyle.label);

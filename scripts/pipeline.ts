@@ -18,7 +18,7 @@ const MODELS = {
 
 type Img2ImgModelSpec = {
   spec:       string;
-  buildInput: (prompt: string, negPrompt: string, imageUrl: string, strength: number, resolution?: string, celebRefB64?: string, allCelebRefs?: string[], outputFormat?: string, allowFallback?: boolean) => Record<string, unknown>;
+  buildInput: (prompt: string, negPrompt: string, imageUrl: string, strength: number, resolution?: string, celebRefB64?: string, allCelebRefs?: string[], outputFormat?: string, allowFallback?: boolean, aspectRatio?: string) => Record<string, unknown>;
 };
 
 const NEG = "blurry, low quality, cartoon, anime, illustration, distorted, ugly, deformed, nsfw, different person, extra limbs";
@@ -28,13 +28,15 @@ export const STYLE_MODELS: Img2ImgModelSpec[] = [
     spec: "google/nano-banana-pro",
     // Correct API schema: image_input is an array of URIs, no strength param.
     // Passing image + strength was silently ignored — photo was never used.
-    buildInput: (prompt, _neg, imageUrl, _strength, resolution = "1K", _primary?: string, allRefs?: string[], outputFormat?: string, allowFallback?: boolean) => ({
+    buildInput: (prompt, _neg, imageUrl, _strength, resolution = "1K", _primary?: string, allRefs?: string[], outputFormat?: string, allowFallback?: boolean, aspectRatio?: string) => ({
       prompt,
       // user's photo first, then all celebrity reference images (up to tier limit)
       image_input:          allRefs && allRefs.length > 0
         ? [imageUrl, ...allRefs]
         : [imageUrl],
-      aspect_ratio:         "match_input_image",
+      // Ratio explicite calculé depuis la photo d'entrée → conserve l'orientation
+      // (vertical / carré / horizontal). "match_input_image" reste le repli.
+      aspect_ratio:         aspectRatio ?? "match_input_image",
       resolution,
       output_format:        outputFormat ?? "jpg",
       safety_filter_level:  "block_only_high",
@@ -95,6 +97,8 @@ export interface PipelineInput {
   renderStyle?:       string;
   transformIntensity?: string;
   outputFormat?:      string;
+  /** Ratio d'aspect explicite (ex. "9:16") calculé depuis la photo d'entrée. */
+  aspectRatio?:       string;
   preserveOutfit?:    boolean;
   celebRefImageUrl?:  string;
   celebRefImageUrls?: string[];
@@ -681,6 +685,7 @@ export type AsyncJobConfig = {
   resolution?:        string;
   outputFormat?:      string;
   allowFallback?:     boolean;
+  aspectRatio?:       string;
   celebRefImageUrl?:  string;
   celebRefImageUrls?: string[];
   celebRefCount?:     number;
@@ -756,6 +761,7 @@ export function buildAsyncJobConfig(
     resolution:         intensityToResolution(qs.resolution, input.transformIntensity),
     outputFormat:       qs.format,
     allowFallback:      qs.allowFallback,
+    aspectRatio:        input.aspectRatio,
     celebRefImageUrl:   clippedRefUrls[0],
     celebRefImageUrls:  clippedRefUrls,
     celebRefCount:      clippedRefCount,
@@ -841,6 +847,7 @@ export async function startAsyncJob(
       celebRefB64s,
       config.outputFormat,
       config.allowFallback,
+      config.aspectRatio,
     ),
   );
   return p.id;

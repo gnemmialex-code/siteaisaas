@@ -14,7 +14,7 @@ interface UploadBoxProps {
   maxSizeMB?: number;
 }
 
-const MAX_SIZE_MB = 10;
+const MAX_SIZE_MB = 30;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 export default function UploadBox({

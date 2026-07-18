@@ -14,7 +14,7 @@ import { getCelebRefImages } from "@/lib/celebrity-refs";
 
 export const maxDuration = 60;
 
-const MAX_FILE_SIZE  = 15 * 1024 * 1024;
+const MAX_FILE_SIZE  = 30 * 1024 * 1024;
 const MAX_VIDEO_SIZE = 70 * 1024 * 1024;
 const BUCKET         = "celebswap-images";
 
@@ -161,6 +161,7 @@ export async function POST(req: NextRequest) {
       const styleId        = formData.get("style_id")     as string | null;
       const rawStylePrompt = formData.get("style_prompt") as string | null;
       const customPrompt   = (formData.get("custom_prompt") as string) ?? "";
+      const aspectRatio    = (formData.get("aspect_ratio")  as string | null) ?? undefined;
       styleLabel           = (formData.get("style_label") as string) ?? "Génération IA";
 
       if (!imageFile) {
@@ -205,6 +206,7 @@ export async function POST(req: NextRequest) {
         renderStyle,
         transformIntensity,
         preserveOutfit,
+        aspectRatio,
         celebRefImageUrl,
         celebRefImageUrls,
         celebRefCount:  celebRefImageUrls.length,
