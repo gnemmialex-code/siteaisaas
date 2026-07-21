@@ -10,13 +10,13 @@ export const STRIPE_CREDIT_PACKS: Record<string, { credits: number; priceId: str
     credits:     800,
     priceId:     process.env.STRIPE_PRICE_CREDITS_800!,
     name:        "Recharge 800 crédits",
-    amountCents: 990,
+    amountCents: 498,
   },
   pack_2000: {
     credits:     2000,
     priceId:     process.env.STRIPE_PRICE_CREDITS_2000!,
     name:        "Recharge 2 000 crédits",
-    amountCents: 1998,
+    amountCents: 1298,
   },
 };
 

@@ -15,7 +15,8 @@ const PLANS = [
     icon: <Zap className="w-5 h-5" />,
     credits: "2 500",
     creditsRaw: 2500,
-    priceMonthly: 9.90,
+    priceMonthly: 4.98,
+    priceYearly: 49.80,
     color: "border-surface-border",
     badge: null,
     tagline: "Pour découvrir l'IA",
@@ -98,7 +99,7 @@ const CREDIT_PACKS = [
   {
     id:       "pack_800",
     credits:  800,
-    price:    9.90,
+    price:    4.98,
     badge:    null,
     tagline:  "Idéal pour quelques générations supplémentaires",
     perImage: "~8 images",
@@ -106,9 +107,9 @@ const CREDIT_PACKS = [
   {
     id:       "pack_2000",
     credits:  2000,
-    price:    19.98,
-    badge:    "Meilleur rapport",
-    tagline:  "Le plus économique — 25% moins cher par crédit",
+    price:    12.98,
+    badge:    "Plus de crédits",
+    tagline:  "Plus de crédits en une seule recharge",
     perImage: "~20 images",
   },
 ];
@@ -344,7 +345,9 @@ export default function PricingPage() {
         <div className="plans-grid grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-6 mb-16">
           {PLANS.map((plan, i) => {
             const monthlyPrice = plan.priceMonthly;
-            const yearlyTotal = +(monthlyPrice * 12 * 0.83).toFixed(2);
+            const yearlyTotal = "priceYearly" in plan
+              ? plan.priceYearly
+              : +(monthlyPrice * 12 * 0.83).toFixed(2);
             const yearlyPerMonth = +(yearlyTotal / 12).toFixed(2);
 
             const displayPrice = billing === "monthly" ? monthlyPrice : yearlyPerMonth;
