@@ -345,9 +345,10 @@ export default function PricingPage() {
         <div className="plans-grid grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-6 mb-16">
           {PLANS.map((plan, i) => {
             const monthlyPrice = plan.priceMonthly;
-            const yearlyTotal = "priceYearly" in plan
-              ? plan.priceYearly
-              : +(monthlyPrice * 12 * 0.83).toFixed(2);
+            const yearlyTotal: number =
+              "priceYearly" in plan && typeof plan.priceYearly === "number"
+                ? plan.priceYearly
+                : +(monthlyPrice * 12 * 0.83).toFixed(2);
             const yearlyPerMonth = +(yearlyTotal / 12).toFixed(2);
 
             const displayPrice = billing === "monthly" ? monthlyPrice : yearlyPerMonth;
