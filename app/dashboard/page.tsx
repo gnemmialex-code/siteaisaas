@@ -505,6 +505,9 @@ export default function DashboardPage() {
   const [error,         setError]         = useState<string | null>(null);
   const [resultUrl,     setResultUrl]     = useState<string | null>(null);
   const [resultStyle,   setResultStyle]   = useState<string>("");
+  // Aperçu non payant : la photo uploadée, floutée, affichée en fond PENDANT
+  // toute l'animation de chargement (pour rester flou « tout le long »).
+  const [pendingPreviewUrl, setPendingPreviewUrl] = useState<string | null>(null);
   // Vidéo IA (Seedance) renvoie un mp4 — affiché dans <video>, pas <Image>
   const resultIsVideo = !!resultUrl && /\.(mp4|webm|mov)$/i.test(resultUrl.split("?")[0]);
   const [deletingId,       setDeletingId]       = useState<string | null>(null);
@@ -833,11 +836,15 @@ export default function DashboardPage() {
     const paidPlan = isPaidPlan(stats?.plan);
     const previewFile = genType === "swapface" ? swapTgtFile : styleFile;
     if (!paidPlan && genType !== "video" && previewFile) {
+      const previewUrl = URL.createObjectURL(previewFile);
+      // Flou affiché DÈS le début : la photo floutée sert de fond au chargement.
+      setPendingPreviewUrl(previewUrl);
+      setResultUrl(null);
+      setResultStyle("");
       setIsGenerating(true);
       setGenProgress(0);
       cancelRef.current = false;
       const fakeIv = simulateProgress();
-      const previewUrl = URL.createObjectURL(previewFile);
 
       // ~10 s (aléatoire 8,5–11 s) pour imiter une vraie génération
       await new Promise((r) => setTimeout(r, 8500 + Math.random() * 2500));
@@ -845,14 +852,17 @@ export default function DashboardPage() {
 
       if (cancelRef.current) {
         URL.revokeObjectURL(previewUrl);
+        setPendingPreviewUrl(null);
         setIsGenerating(false);
         toast("Génération annulée", { icon: "🛑" });
         return;
       }
 
+      // Le résultat reste la MÊME photo floutée (blur permanent via !isPaid).
       setGenProgress(100);
       setResultUrl(previewUrl);
       setResultStyle(selectedStyle?.label ?? "");
+      setPendingPreviewUrl(null);
       setIsGenerating(false);
       return;
     }
@@ -1498,9 +1508,9 @@ export default function DashboardPage() {
                           <div>
                             <div className="relative aspect-square bg-surface-hover overflow-hidden">
                               {resultIsVideo ? (
-                                <video src={resultUrl} controls autoPlay loop playsInline className={`absolute inset-0 w-full h-full object-contain ${isPaid ? "" : "blur-2xl scale-110"}`} />
+                                <video src={resultUrl} controls autoPlay loop playsInline className={`absolute inset-0 w-full h-full object-contain ${isPaid ? "" : "blur-[48px] scale-125"}`} />
                               ) : (
-                                <Image src={resultUrl} alt={resultStyle} fill className={`object-contain ${isPaid ? "" : "blur-2xl scale-110"}`} />
+                                <Image src={resultUrl} alt={resultStyle} fill className={`object-contain ${isPaid ? "" : "blur-[48px] scale-125"}`} />
                               )}
                               {!isPaid && <LockedOverlay onUnlock={unlockAction} signup={isAnon} />}
                             </div>
@@ -1526,15 +1536,23 @@ export default function DashboardPage() {
                             </div>
                           </div>
                         ) : (
-                          <div className="aspect-square flex flex-col items-center justify-center gap-3 text-center p-6">
-                            {isGenerating ? (
+                          <div className="relative aspect-square flex flex-col items-center justify-center gap-3 text-center p-6">
+                            {/* Photo floutée en fond pendant tout le chargement (aperçu non payant) */}
+                            {isGenerating && !isPaid && pendingPreviewUrl && (
                               <>
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={pendingPreviewUrl} alt="" className="absolute inset-0 w-full h-full object-cover blur-[48px] scale-125 pointer-events-none" />
+                                <div className="absolute inset-0 bg-black/40 pointer-events-none" />
+                              </>
+                            )}
+                            {isGenerating ? (
+                              <div className="relative z-10 flex flex-col items-center gap-3 w-full">
                                 <motion.div
                                   animate={{ rotate: 360 }}
                                   transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
                                   className="w-12 h-12 rounded-full border-2 border-accent-violet/30 border-t-accent-violet"
                                 />
-                                <p className="text-white/50 text-sm font-medium">Génération en cours…</p>
+                                <p className={`text-sm font-medium ${!isPaid && pendingPreviewUrl ? "text-white/80" : "text-white/50"}`}>Génération en cours…</p>
                                 <div className="w-full h-1.5 bg-surface-hover rounded-full overflow-hidden">
                                   <motion.div
                                     className="h-full bg-gradient-violet-neon rounded-full"
@@ -1552,7 +1570,7 @@ export default function DashboardPage() {
                                   <StopCircle className="w-3.5 h-3.5" />
                                   Arrêter
                                 </motion.button>
-                              </>
+                              </div>
                             ) : (
                               <>
                                 <div className="w-16 h-16 rounded-2xl bg-surface-hover flex items-center justify-center">
@@ -1614,9 +1632,9 @@ export default function DashboardPage() {
                             <div>
                               <div className="relative bg-surface-hover overflow-hidden" style={{ height: "60vh" }}>
                                 {resultIsVideo ? (
-                                  <video src={resultUrl} controls autoPlay loop playsInline className={`absolute inset-0 w-full h-full object-contain ${isPaid ? "" : "blur-2xl scale-110"}`} />
+                                  <video src={resultUrl} controls autoPlay loop playsInline className={`absolute inset-0 w-full h-full object-contain ${isPaid ? "" : "blur-[48px] scale-125"}`} />
                                 ) : (
-                                  <Image src={resultUrl} alt={resultStyle || "Résultat"} fill className={`object-contain ${isPaid ? "" : "blur-2xl scale-110"}`} />
+                                  <Image src={resultUrl} alt={resultStyle || "Résultat"} fill className={`object-contain ${isPaid ? "" : "blur-[48px] scale-125"}`} />
                                 )}
                                 {!isPaid && <LockedOverlay onUnlock={unlockAction} signup={isAnon} />}
                               </div>
@@ -1643,8 +1661,16 @@ export default function DashboardPage() {
                             </div>
                           ) : (
                             /* Corps — chargement */
-                            <div className="flex flex-col items-center justify-center gap-6 py-16 px-8">
-                              <div className="relative w-24 h-24">
+                            <div className="relative flex flex-col items-center justify-center gap-6 py-16 px-8 overflow-hidden">
+                              {/* Photo floutée en fond pendant tout le chargement (aperçu non payant) */}
+                              {!isPaid && pendingPreviewUrl && (
+                                <>
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img src={pendingPreviewUrl} alt="" className="absolute inset-0 w-full h-full object-cover blur-[48px] scale-125 pointer-events-none" />
+                                  <div className="absolute inset-0 bg-black/45 pointer-events-none" />
+                                </>
+                              )}
+                              <div className="relative z-10 w-24 h-24">
                                 <motion.div
                                   animate={{ rotate: 360 }}
                                   transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
@@ -1654,11 +1680,11 @@ export default function DashboardPage() {
                                   <Sparkles className="w-8 h-8 text-accent-violet/60" />
                                 </div>
                               </div>
-                              <div className="text-center space-y-1.5">
+                              <div className="relative z-10 text-center space-y-1.5">
                                 <p className="text-white/85 text-2xl font-black">Génération IA</p>
-                                <p className="text-white/40 text-sm">Votre image est en cours de création…</p>
+                                <p className={`text-sm ${!isPaid && pendingPreviewUrl ? "text-white/60" : "text-white/40"}`}>Votre image est en cours de création…</p>
                               </div>
-                              <div className="w-80 space-y-2">
+                              <div className="relative z-10 w-80 space-y-2">
                                 <div className="h-2.5 bg-surface-hover rounded-full overflow-hidden">
                                   <motion.div
                                     className="h-full bg-gradient-violet-neon rounded-full"
@@ -1672,7 +1698,7 @@ export default function DashboardPage() {
                                 onClick={handleCancel}
                                 whileHover={{ scale: 1.03 }}
                                 whileTap={{ scale: 0.97 }}
-                                className="flex items-center gap-2 px-6 py-3 rounded-xl border border-red-500/40 text-red-400 hover:bg-red-500/10 font-semibold transition-all"
+                                className="relative z-10 flex items-center gap-2 px-6 py-3 rounded-xl border border-red-500/40 text-red-400 hover:bg-red-500/10 font-semibold transition-all"
                               >
                                 <StopCircle className="w-4 h-4" />
                                 Arrêter la génération
