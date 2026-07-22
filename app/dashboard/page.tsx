@@ -517,6 +517,8 @@ export default function DashboardPage() {
 
   const cancelRef    = useRef(false);
   const activePredRef = useRef<{ jobId?: string; predId?: string }>({});
+  // Minuteur qui réinitialise l'aperçu flouté après 10 min (comptes non payants).
+  const previewResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     // Vue initiale + retours de paiement via l'URL (?view=snaprouge, ?payment=snap_success)
@@ -832,7 +834,8 @@ export default function DashboardPage() {
     // On ne touche ni à Replicate ni aux crédits : fausse attente (~10 s pour
     // rester crédible), puis on affiche la photo uploadée — automatiquement
     // floutée + CTA abonnement (le rendu gère déjà blur + LockedOverlay quand
-    // !isPaid). Le rendu NET est réservé aux abonnements payants.
+    // !isPaid). L'aperçu flou reste affiché 10 min tant que l'utilisateur ne
+    // clique pas sur le CTA. Le rendu NET est réservé aux abonnements payants.
     const paidPlan = isPaidPlan(stats?.plan);
     const previewFile = genType === "swapface" ? swapTgtFile : styleFile;
     if (!paidPlan && genType !== "video" && previewFile) {
@@ -864,6 +867,15 @@ export default function DashboardPage() {
       setResultStyle(selectedStyle?.label ?? "");
       setPendingPreviewUrl(null);
       setIsGenerating(false);
+
+      // L'aperçu flou reste affiché 10 min. Passé ce délai, si l'utilisateur
+      // n'a pas cliqué sur le CTA, on réinitialise l'aperçu.
+      if (previewResetRef.current) clearTimeout(previewResetRef.current);
+      previewResetRef.current = setTimeout(() => {
+        URL.revokeObjectURL(previewUrl);
+        setResultUrl(null);
+        setResultStyle("");
+      }, 10 * 60 * 1000);
       return;
     }
 
@@ -978,6 +990,7 @@ export default function DashboardPage() {
 
   /* Renvoie l'utilisateur vers les formules pour débloquer la HD */
   const goToSubscription = () => {
+    if (previewResetRef.current) clearTimeout(previewResetRef.current);
     setResultUrl(null);
     setResultStyle("");
     router.push("/pricing");
@@ -985,6 +998,7 @@ export default function DashboardPage() {
 
   /* Visiteur anonyme : l'aperçu flou invite à créer un compte. */
   const goToSignup = () => {
+    if (previewResetRef.current) clearTimeout(previewResetRef.current);
     router.push("/register");
   };
 
