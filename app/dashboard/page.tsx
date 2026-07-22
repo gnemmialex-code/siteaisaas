@@ -83,7 +83,8 @@ function planQualityBadge(plan?: string): { label: string; color: string } {
 }
 
 /* Cadenas + appel à l'action affichés par-dessus une image floutée (compte gratuit) */
-function LockedOverlay({ onUnlock, compact = false }: { onUnlock: () => void; compact?: boolean }) {
+function LockedOverlay({ onUnlock, compact = false, signup = false }: { onUnlock: () => void; compact?: boolean; signup?: boolean }) {
+  const CTAIcon = signup ? UserPlus : Crown;
   return (
     <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 text-center p-3 bg-black/30">
       <div className={`rounded-2xl bg-accent-violet/20 border border-accent-violet/40 flex items-center justify-center ${compact ? "w-9 h-9" : "w-14 h-14"}`}>
@@ -93,7 +94,9 @@ function LockedOverlay({ onUnlock, compact = false }: { onUnlock: () => void; co
         <>
           <p className="text-white font-bold text-sm max-w-[260px]">Aperçu flouté</p>
           <p className="text-white/70 text-xs max-w-[260px] leading-relaxed">
-            Passez à une formule pour révéler votre image en haute définition.
+            {signup
+              ? "Créez un compte gratuit pour continuer et révéler votre image."
+              : "Passez à une formule pour révéler votre image en haute définition."}
           </p>
         </>
       )}
@@ -101,8 +104,8 @@ function LockedOverlay({ onUnlock, compact = false }: { onUnlock: () => void; co
         onClick={(e) => { e.stopPropagation(); onUnlock(); }}
         className={`btn-primary flex items-center justify-center gap-1.5 font-semibold ${compact ? "px-2.5 py-1 text-[11px]" : "px-4 py-2 text-sm mt-1"}`}
       >
-        <Crown className={compact ? "w-3 h-3" : "w-4 h-4"} />
-        Débloquer
+        <CTAIcon className={compact ? "w-3 h-3" : "w-4 h-4"} />
+        {signup ? "S'inscrire" : "Débloquer"}
       </button>
     </div>
   );
@@ -743,7 +746,9 @@ export default function DashboardPage() {
   };
 
   const handleGenerate = async () => {
-    if (isAuthed === false) { setShowAuthGate(true); return; }
+    // Anonyme : PAS de blocage d'inscription au clic. On le laisse générer un
+    // aperçu flouté (aucun appel IA — voir le court-circuit plus bas) puis on
+    // affiche le résultat flou avec un bouton « S'inscrire » par-dessus.
     setError(null);
     if (!consent) { setError("Veuillez accepter les conditions."); return; }
 
@@ -958,6 +963,8 @@ export default function DashboardPage() {
 
   /* Compte payant ? Sinon les résultats sont floutés (aperçu). */
   const isPaid = isPaidPlan(stats?.plan);
+  /* Visiteur non connecté : le CTA de l'aperçu invite à s'inscrire (pas /pricing). */
+  const isAnon = isAuthed === false;
 
   /* Renvoie l'utilisateur vers les formules pour débloquer la HD */
   const goToSubscription = () => {
@@ -965,6 +972,15 @@ export default function DashboardPage() {
     setResultStyle("");
     router.push("/pricing");
   };
+
+  /* Visiteur anonyme : l'aperçu flou invite à créer un compte. */
+  const goToSignup = () => {
+    router.push("/register");
+  };
+
+  /* Action + libellé du CTA affiché sur l'aperçu flouté selon l'état de connexion. */
+  const unlockAction = isAnon ? goToSignup : goToSubscription;
+  const unlockLabel  = isAnon ? "S'inscrire" : "Débloquer en HD";
 
   const userInitial = userEmail?.[0]?.toUpperCase() ?? "?";
 
@@ -1486,7 +1502,7 @@ export default function DashboardPage() {
                               ) : (
                                 <Image src={resultUrl} alt={resultStyle} fill className={`object-contain ${isPaid ? "" : "blur-2xl scale-110"}`} />
                               )}
-                              {!isPaid && <LockedOverlay onUnlock={goToSubscription} />}
+                              {!isPaid && <LockedOverlay onUnlock={unlockAction} signup={isAnon} />}
                             </div>
                             <div className="p-4 space-y-3">
                               <p className="text-white/50 text-xs text-center">{resultStyle}</p>
@@ -1500,11 +1516,11 @@ export default function DashboardPage() {
                                 </button>
                               ) : (
                                 <button
-                                  onClick={goToSubscription}
+                                  onClick={unlockAction}
                                   className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-accent-violet hover:bg-accent-violet/80 text-white text-sm font-semibold transition-all"
                                 >
-                                  <Crown className="w-4 h-4" />
-                                  Débloquer en HD
+                                  {isAnon ? <UserPlus className="w-4 h-4" /> : <Crown className="w-4 h-4" />}
+                                  {unlockLabel}
                                 </button>
                               )}
                             </div>
@@ -1602,11 +1618,11 @@ export default function DashboardPage() {
                                 ) : (
                                   <Image src={resultUrl} alt={resultStyle || "Résultat"} fill className={`object-contain ${isPaid ? "" : "blur-2xl scale-110"}`} />
                                 )}
-                                {!isPaid && <LockedOverlay onUnlock={goToSubscription} />}
+                                {!isPaid && <LockedOverlay onUnlock={unlockAction} signup={isAnon} />}
                               </div>
                               <div className="p-6 flex items-center gap-4">
                                 <p className="text-white/50 text-sm flex-1 truncate">
-                                  {isPaid ? resultStyle : "Aperçu flouté — débloquez la HD avec une formule"}
+                                  {isPaid ? resultStyle : isAnon ? "Aperçu flouté — inscrivez-vous pour continuer" : "Aperçu flouté — débloquez la HD avec une formule"}
                                 </p>
                                 {isPaid ? (
                                   <button
@@ -1617,10 +1633,10 @@ export default function DashboardPage() {
                                   </button>
                                 ) : (
                                   <button
-                                    onClick={goToSubscription}
+                                    onClick={unlockAction}
                                     className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-accent-violet hover:bg-accent-violet/80 text-white font-semibold transition-all text-sm whitespace-nowrap"
                                   >
-                                    <Crown className="w-4 h-4" />Débloquer en HD
+                                    {isAnon ? <UserPlus className="w-4 h-4" /> : <Crown className="w-4 h-4" />}{unlockLabel}
                                   </button>
                                 )}
                               </div>
@@ -1737,7 +1753,7 @@ export default function DashboardPage() {
                             ) : (
                               <Image src={gen.output_image_url} alt={gen.style} fill className={`object-cover ${isPaid ? "" : "blur-xl scale-110"}`} />
                             )}
-                            {!isPaid && <LockedOverlay onUnlock={goToSubscription} compact />}
+                            {!isPaid && <LockedOverlay onUnlock={unlockAction} signup={isAnon} compact />}
                           </div>
                           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/60 transition-all flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 gap-2 z-30">
                             {isPaid && (
