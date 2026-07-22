@@ -82,6 +82,22 @@ function planQualityBadge(plan?: string): { label: string; color: string } {
   return { label: "HD 1080p",                                  color: "text-white/40 border-surface-border bg-surface-hover" };
 }
 
+/* Voile flouté permanent posé PAR-DESSUS l'image (backdrop-filter).
+   Contrairement au `filter: blur()` d'une <img>, qui saute lors d'un repaint
+   GPU (survol souris sur PC, scroll sur mobile) et laisse l'image nette un
+   instant, backdrop-filter reste stable : la couche est toujours peinte, donc
+   l'image dessous ne peut jamais réapparaître nette. */
+function BlurVeil({ strong = false }: { strong?: boolean }) {
+  const px = strong ? 48 : 24;
+  return (
+    <div
+      aria-hidden
+      className="absolute inset-0 z-10 pointer-events-none"
+      style={{ backdropFilter: `blur(${px}px)`, WebkitBackdropFilter: `blur(${px}px)` }}
+    />
+  );
+}
+
 /* Cadenas + appel à l'action affichés par-dessus une image floutée (compte gratuit) */
 function LockedOverlay({ onUnlock, compact = false, signup = false }: { onUnlock: () => void; compact?: boolean; signup?: boolean }) {
   const CTAIcon = signup ? UserPlus : Crown;
@@ -1526,6 +1542,7 @@ export default function DashboardPage() {
                               ) : (
                                 <Image src={resultUrl} alt={resultStyle} fill className={`object-contain ${isPaid ? "" : "blur-[48px] scale-125"}`} />
                               )}
+                              {!isPaid && <BlurVeil strong />}
                               {!isPaid && <LockedOverlay onUnlock={unlockAction} signup={isAnon} />}
                             </div>
                             <div className="p-4 space-y-3">
@@ -1556,6 +1573,7 @@ export default function DashboardPage() {
                               <>
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img src={pendingPreviewUrl} alt="" className="absolute inset-0 w-full h-full object-cover blur-[48px] scale-125 pointer-events-none" />
+                                <BlurVeil strong />
                                 <div className="absolute inset-0 bg-black/40 pointer-events-none" />
                               </>
                             )}
@@ -1650,6 +1668,7 @@ export default function DashboardPage() {
                                 ) : (
                                   <Image src={resultUrl} alt={resultStyle || "Résultat"} fill className={`object-contain ${isPaid ? "" : "blur-[48px] scale-125"}`} />
                                 )}
+                                {!isPaid && <BlurVeil strong />}
                                 {!isPaid && <LockedOverlay onUnlock={unlockAction} signup={isAnon} />}
                               </div>
                               <div className="p-6 flex items-center gap-4">
@@ -1681,6 +1700,7 @@ export default function DashboardPage() {
                                 <>
                                   {/* eslint-disable-next-line @next/next/no-img-element */}
                                   <img src={pendingPreviewUrl} alt="" className="absolute inset-0 w-full h-full object-cover blur-[48px] scale-125 pointer-events-none" />
+                                  <BlurVeil strong />
                                   <div className="absolute inset-0 bg-black/45 pointer-events-none" />
                                 </>
                               )}
@@ -1793,6 +1813,7 @@ export default function DashboardPage() {
                             ) : (
                               <Image src={gen.output_image_url} alt={gen.style} fill className={`object-cover ${isPaid ? "" : "blur-xl scale-110"}`} />
                             )}
+                            {!isPaid && <BlurVeil />}
                             {!isPaid && <LockedOverlay onUnlock={unlockAction} signup={isAnon} compact />}
                           </div>
                           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/60 transition-all flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 gap-2 z-30">
