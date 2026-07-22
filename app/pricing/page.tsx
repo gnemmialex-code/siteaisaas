@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Check, Zap, Loader2, Sparkles, Crown, Infinity as InfinityIcon, ShieldCheck, Plus } from "lucide-react";
+import { Check, Zap, Loader2, Sparkles, Crown, Infinity as InfinityIcon, ShieldCheck } from "lucide-react";
 import toast from "react-hot-toast";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -95,33 +95,14 @@ const PLANS = [
   },
 ];
 
-const CREDIT_PACKS = [
-  {
-    id:       "pack_800",
-    credits:  800,
-    price:    4.98,
-    badge:    null,
-    tagline:  "Idéal pour quelques générations supplémentaires",
-    perImage: "~8 images",
-  },
-  {
-    id:       "pack_2000",
-    credits:  2000,
-    price:    12.98,
-    badge:    "Plus de crédits",
-    tagline:  "Plus de crédits en une seule recharge",
-    perImage: "~20 images",
-  },
-];
-
 const FAQ = [
   {
-    q: "Combien vaut un crédit ?",
-    a: "1 image générée = 100 crédits. Pour la vidéo, comptez 200 crédits par seconde de vidéo générée.",
+    q: "Y a-t-il une limite de générations ?",
+    a: "Non. Tous les abonnements incluent des générations illimitées. Vous transformez autant de photos que vous le souhaitez, dans les limites de votre formule (la vidéo IA est réservée aux plans Pro et Elite).",
   },
   {
-    q: "Les crédits non utilisés sont-ils reportés ?",
-    a: "Oui, les crédits mensuels non utilisés sont reportés au mois suivant tant que votre abonnement est actif.",
+    q: "Que se passe-t-il sans abonnement ?",
+    a: "Vous pouvez tester gratuitement : vous obtenez un aperçu flouté de votre transformation. Un abonnement actif débloque le rendu net en haute définition, téléchargeable.",
   },
   {
     q: "Puis-je changer de plan à tout moment ?",
@@ -149,7 +130,6 @@ export default function PricingPage() {
   const router = useRouter();
   const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
-  const [loadingPack, setLoadingPack] = useState<string | null>(null);
 
   /* Mobile : la formule face à l'écran s'agrandit (via whileInView) et les
      autres s'assombrissent — équivalent tactile du survol souris sur desktop. */
@@ -162,33 +142,6 @@ export default function PricingPage() {
     mq.addEventListener("change", update);
     return () => mq.removeEventListener("change", update);
   }, []);
-
-  const handleTopup = async (packId: string) => {
-    setLoadingPack(packId);
-    try {
-      const res = await fetch("/api/stripe/create-topup-session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ packId }),
-      });
-      const data = await res.json();
-
-      if (res.status === 401) {
-        toast("Connectez-vous pour acheter des crédits", { icon: "🔒" });
-        router.push("/login?redirect=/pricing");
-        return;
-      }
-      if (!res.ok || !data.url) {
-        toast.error(data.error ?? "Erreur lors du paiement");
-        return;
-      }
-      window.location.href = data.url;
-    } catch {
-      toast.error("Erreur de connexion");
-    } finally {
-      setLoadingPack(null);
-    }
-  };
 
   const handleSubscribe = async (plan: typeof PLANS[0]) => {
     setLoadingPlan(plan.id);
@@ -310,7 +263,7 @@ export default function PricingPage() {
             Choisissez votre <span className="gradient-text">plan</span>
           </h1>
           <p className="text-white/50 text-xl max-w-xl mx-auto mb-8">
-            Des crédits renouvelés chaque mois pour transformer vos photos et vidéos.
+            Des générations illimitées pour transformer vos photos et vidéos en haute définition.
           </p>
 
           {/* Toggle mensuel / annuel */}
@@ -443,25 +396,13 @@ export default function PricingPage() {
                   )}
                 </div>
 
-                {/* Crédits */}
+                {/* Générations illimitées (toutes les formules) */}
                 <div className="text-center mb-4 py-4 bg-surface-hover rounded-xl relative overflow-hidden">
-                  {plan.creditsRaw === null ? (
-                    <div className="flex items-center justify-center gap-2">
-                      <InfinityIcon className="w-8 h-8 text-accent-violet" />
-                      <span className="text-2xl font-black violetblue-shimmer-text">Illimité</span>
-                    </div>
-                  ) : (
-                    <span className="text-4xl font-black gradient-text">{plan.credits}</span>
-                  )}
-                  <p className="text-white/50 text-sm mt-1">crédits / mois</p>
-
-                  {/* Badge bonus — uniquement si le plan a des crédits offerts */}
-                  {"bonusCredits" in plan && plan.bonusCredits && (
-                    <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-500/15 border border-green-500/30 text-green-400 text-xs font-bold">
-                      <span>🎁</span>
-                      + {plan.bonusCredits.toLocaleString("fr-FR")} crédits offerts
-                    </div>
-                  )}
+                  <div className="flex items-center justify-center gap-2">
+                    <InfinityIcon className="w-8 h-8 text-accent-violet" />
+                    <span className="text-2xl font-black violetblue-shimmer-text">Illimité</span>
+                  </div>
+                  <p className="text-white/50 text-sm mt-1">générations / mois</p>
                 </div>
 
                 {/* Highlights — qualité / vitesse / file */}
@@ -519,106 +460,7 @@ export default function PricingPage() {
           })}
         </div>
 
-        {/* ── Recharge de crédits ── */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="mb-12"
-        >
-          {/* Titre de section */}
-          <div className="text-center mb-7">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent-violet/10 border border-accent-violet/25 text-accent-violet text-sm font-semibold mb-4">
-              <Plus className="w-3.5 h-3.5" />
-              Recharge de crédits
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-black mb-2">
-              Besoin de plus de crédits ?
-            </h2>
-            <p className="text-white/50 max-w-md mx-auto text-sm">
-              Rechargez à la demande sans changer votre abonnement. Les crédits s&apos;ajoutent instantanément à votre solde.
-            </p>
-          </div>
-
-          {/* Cards packs */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 max-w-2xl mx-auto">
-            {CREDIT_PACKS.map((pack, i) => (
-              <motion.div
-                key={pack.id}
-                initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.08 }}
-                className={`relative card flex flex-col gap-4 border-2 ${
-                  pack.badge ? "border-accent-violet shadow-violet" : "border-surface-border"
-                }`}
-              >
-                {pack.badge && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-accent-violet text-white text-xs px-4 py-1 rounded-full font-bold whitespace-nowrap">
-                    {pack.badge}
-                  </div>
-                )}
-
-                {/* Crédits & prix */}
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-3xl font-black gradient-text">
-                      {pack.credits.toLocaleString("fr-FR")}
-                    </p>
-                    <p className="text-white/45 text-sm">crédits</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-black">
-                      {pack.price.toFixed(2).replace(".", ",")}€
-                    </p>
-                    <p className="text-white/35 text-xs">paiement unique</p>
-                  </div>
-                </div>
-
-                {/* Infos */}
-                <div className="space-y-1.5 text-sm text-white/55">
-                  <div className="flex items-center gap-2">
-                    <Check className="w-3.5 h-3.5 text-accent-violet flex-shrink-0" />
-                    <span>{pack.perImage} générées</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Check className="w-3.5 h-3.5 text-accent-violet flex-shrink-0" />
-                    <span>Ajout immédiat à votre solde</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Check className="w-3.5 h-3.5 text-accent-violet flex-shrink-0" />
-                    <span className="text-white/40 text-xs italic">{pack.tagline}</span>
-                  </div>
-                </div>
-
-                {/* CTA */}
-                <button
-                  onClick={() => handleTopup(pack.id)}
-                  disabled={!!loadingPack}
-                  className={`w-full py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all ${
-                    pack.badge ? "btn-primary" : "btn-secondary"
-                  }`}
-                >
-                  {loadingPack === pack.id ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <>
-                      <Plus className="w-4 h-4" />
-                      Acheter {pack.credits.toLocaleString("fr-FR")} crédits
-                    </>
-                  )}
-                </button>
-              </motion.div>
-            ))}
-          </div>
-
-          {/* Note abonnement requis */}
-          <p className="text-center text-white/30 text-xs mt-4">
-            Un compte AstraCrea est requis. Les crédits achetés ne sont pas remboursables.
-          </p>
-        </motion.div>
-
-        {/* Explication crédits */}
+        {/* Comment ça marche */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -630,17 +472,17 @@ export default function PricingPage() {
               <Sparkles className="w-6 h-6" />
             </div>
             <div>
-              <p className="font-bold text-white">1 image générée</p>
-              <p className="text-white/50 text-sm">= 100 crédits</p>
+              <p className="font-bold text-white">Sans abonnement</p>
+              <p className="text-white/50 text-sm">Aperçu flouté gratuit</p>
             </div>
           </div>
           <div className="card border-accent-neon/20 bg-accent-neon/5 flex items-center gap-4">
             <div className="w-12 h-12 bg-accent-neon/10 rounded-xl flex items-center justify-center text-accent-neon flex-shrink-0">
-              <Zap className="w-6 h-6" />
+              <InfinityIcon className="w-6 h-6" />
             </div>
             <div>
-              <p className="font-bold text-white">1 seconde de vidéo</p>
-              <p className="text-white/50 text-sm">= 200 crédits</p>
+              <p className="font-bold text-white">Avec abonnement</p>
+              <p className="text-white/50 text-sm">Rendu net illimité en HD</p>
             </div>
           </div>
         </motion.div>
@@ -654,7 +496,7 @@ export default function PricingPage() {
         >
           <h3 className="text-2xl font-bold mb-2">Essayez gratuitement</h3>
           <p className="text-white/50 mb-4">
-            Créez un compte et recevez 100 crédits offerts (soit 1 image gratuite). Aucune carte bancaire requise.
+            Créez un compte gratuit et générez un aperçu de votre transformation. Débloquez le rendu net en HD avec un abonnement. Aucune carte bancaire requise pour tester.
           </p>
           <a href="/register" className="btn-primary inline-flex items-center gap-2">
             <Zap className="w-4 h-4" />

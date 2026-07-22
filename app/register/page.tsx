@@ -135,12 +135,12 @@ export default function RegisterPage() {
           <h1 className="text-3xl font-bold mb-2">Créer un compte</h1>
           <div className="inline-flex items-center gap-1.5 bg-green-500/10 border border-green-500/30 text-green-400 text-sm px-3 py-1.5 rounded-full">
             <Zap className="w-3.5 h-3.5" />
-            100 crédits offerts = 1 image gratuite
+            Gratuit — testez sans carte bancaire
           </div>
           {refCode && (
             <div className="mt-3 inline-flex items-center gap-1.5 bg-accent-violet/10 border border-accent-violet/30 text-accent-violet text-sm px-3 py-1.5 rounded-full">
               <Gift className="w-3.5 h-3.5" />
-              Code parrain <strong>{refCode}</strong> — +100 crédits bonus
+              Code parrain <strong>{refCode}</strong> appliqué
             </div>
           )}
         </div>

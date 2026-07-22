@@ -11,22 +11,13 @@ import { validateImageFile, validateVideoFile } from "@/lib/validation";
 import { uploadToStorage } from "@/lib/storage";
 import { findAllCelebrities, CELEBRITY_DB } from "@/lib/celebrity-db";
 import { getCelebRefImages } from "@/lib/celebrity-refs";
+import { isPaidPlan } from "@/lib/plan";
 
 export const maxDuration = 60;
 
 const MAX_FILE_SIZE  = 30 * 1024 * 1024;
 const MAX_VIDEO_SIZE = 70 * 1024 * 1024;
 const BUCKET         = "celebswap-images";
-
-// Crédits déduits par génération selon le tier.
-// Essentiel = qualité 1K, moins de crédits consommés.
-// Ultra = qualité 4K PNG, coûte plus de crédits.
-const CREDITS_PER_TIER: Record<string, number> = {
-  free:      100,
-  essentiel: 50,
-  pro:       100,
-  ultra:     150,
-};
 
 function generateId(): string {
   return Math.random().toString(36).substring(2) + Date.now().toString(36);
@@ -72,14 +63,6 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   const userId = user?.id ?? null;
 
-  // Guest check
-  if (!userId) {
-    const freeUsed = req.cookies.get("free_gen_used")?.value;
-    if (freeUsed === "1") {
-      return NextResponse.json({ error: "Créez un compte pour continuer à générer" }, { status: 402 });
-    }
-  }
-
   let formData: FormData;
   try {
     formData = await req.formData();
@@ -89,24 +72,20 @@ export async function POST(req: NextRequest) {
 
   const mode = (formData.get("mode") as string) ?? "style";
 
-  // ── Lecture du plan + vérification des crédits ────────────────────────────
+  // ── Accès payant : le rendu NET (vraie génération IA) est réservé aux
+  // abonnements actifs. Anonyme + plan "free" → APERÇU flouté géré côté client
+  // (aucun appel Replicate, aucun crédit). Le serveur le garantit ici pour que
+  // même un appel direct à l'API ne puisse pas déclencher de génération payante.
   let qualityTier: "free" | "essentiel" | "pro" | "ultra" = "free";
-  let creditsRequired = CREDITS_PER_TIER["free"]!;
+  let planId: string | null = null;
 
   if (userId) {
-    const planId = await getUserPlanId(userId);
-    qualityTier      = planToTier(planId);
-    creditsRequired  = CREDITS_PER_TIER[qualityTier] ?? 100;
+    planId      = await getUserPlanId(userId);
+    qualityTier = planToTier(planId);
+  }
 
-    const { data: creditData } = await supabase
-      .from("users")
-      .select("credits")
-      .eq("id", userId)
-      .single();
-
-    if (!creditData || creditData.credits < creditsRequired) {
-      return NextResponse.json({ error: "Crédits insuffisants" }, { status: 402 });
-    }
+  if (!isPaidPlan(planId)) {
+    return NextResponse.json({ preview: true });
   }
 
   // ── Restrictions par plan ──────────────────────────────────────────────────
@@ -314,10 +293,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Ce mode n'est pas encore disponible" }, { status: 400 });
     }
 
-    // ── Déduire les crédits + sauvegarder le job ────────────────────────────
-    if (userId) {
-      await supabase.rpc("decrement_credits", { user_id: userId, amount: creditsRequired });
-
+    // ── Sauvegarder le job (abonné payant = générations illimitées) ─────────
+    {
       const { error: insertError } = await supabase.from("generations").insert({
         id:               generationId,
         user_id:          userId,
@@ -357,17 +334,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const response = NextResponse.json({ job_id: generationId, prediction_id: predictionId });
-
-    if (!userId) {
-      response.cookies.set("free_gen_used", "1", {
-        maxAge: 60 * 60 * 24 * 365,
-        httpOnly: true,
-        sameSite: "lax",
-      });
-    }
-
-    return response;
+    return NextResponse.json({ job_id: generationId, prediction_id: predictionId });
 
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Erreur pipeline IA";

@@ -26,7 +26,7 @@ const REVIEWS = [
   { name: "Soph!_mtbl", city: "Paris", stars: 5, text: "Incroyable ! Le résultat est tellement réaliste, j'ai partagé sur Instagram et tout le monde pensait que c'était vrai." },
   { name: "Lucasss9378!", city: "Lyon", stars: 5, text: "La qualité 4K est bluffante. En 30 secondes j'avais mon photo en style Hollywood. Je recommande vivement !" },
   { name: "Chl0E.BRZH", city: "Bordeaux", stars: 5, text: "Parfait pour les photos de profil. Le style Vogue Editorial est mon préféré, le rendu est professionnel." },
-  { name: "Max.xAm76", city: "Dijon", stars: 5, text: "J'utilise AstraCrea chaque semaine. Les crédits Pro suffisent largement, excellent rapport qualité/prix." },
+  { name: "Max.xAm76", city: "Dijon", stars: 5, text: "J'utilise AstraCrea chaque semaine. L'abonnement Pro en illimité, excellent rapport qualité/prix." },
   { name: "Em1.Rtbu", city: "Nantes", stars: 4, text: "Très bon service ! Seul petit bémol, parfois 40 secondes au lieu de 20 habituellement. Je pense que je vais passer à Ultra pour aller plus vite !" },
   { name: "ThomAss772ltrb", city: "Toulouse", stars: 5, text: "J'ai essayé d'autres outils, rien n'arrive à la cheville d'AstraCrea. La précision de la transformation est exceptionnelle." },
   { name: "Cam.sdr", city: "Strasbourg", stars: 5, text: "Le style Met Gala est trop bien. On dirait une vraie photo de gala. Mes amis n'en reviennent pas !" },
@@ -70,8 +70,8 @@ const FAQ_ITEMS = [
     a: "Oui, tant que le visage est bien visible, de face ou légèrement de profil, avec une bonne luminosité. Les photos floues, très sombres ou avec plusieurs visages donnent des résultats moins précis.",
   },
   {
-    q: "Les crédits expirent-ils ?",
-    a: "Non, vos crédits n'ont pas de date d'expiration. Achetez-en une fois, utilisez-les à votre rythme.",
+    q: "Combien de générations puis-je faire ?",
+    a: "Tous les abonnements incluent des générations illimitées. Sans abonnement, vous obtenez un aperçu flouté ; le rendu net en HD se débloque dès qu'un abonnement est actif.",
   },
   {
     q: "Quelle est la résolution finale des images ?",

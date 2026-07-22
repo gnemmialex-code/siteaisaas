@@ -67,7 +67,7 @@ function ResultContent() {
         body: JSON.stringify({ generation_id: generation.id }),
       });
       if (res.status === 402) {
-        toast.error("Crédits insuffisants");
+        toast.error("Cette action nécessite un abonnement actif");
         return;
       }
       if (!res.ok) throw new Error("Erreur de régénération");

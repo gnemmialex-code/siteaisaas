@@ -126,7 +126,7 @@ export default function ConsentPage() {
             <li>Suppression de votre compte depuis les paramètres (entraîne la suppression de toutes vos données générées).</li>
           </ul>
           <p>
-            Le retrait du consentement ne permet pas la récupération des crédits déjà consommés.
+            Le retrait du consentement ne donne pas droit au remboursement de la période d&apos;abonnement en cours.
           </p>
         </Section>
 

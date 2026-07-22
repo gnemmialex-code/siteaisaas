@@ -46,8 +46,9 @@ export default function TermsPage() {
           <p>
             Le Service permet aux utilisateurs enregistrés de téléverser une photographie personnelle et d&apos;obtenir
             une image transformée grâce à des modèles d&apos;IA (détection de visage, génération de style, fusion de
-            visage, upscale 4K). Chaque génération d&apos;image consomme 100 crédits ; chaque seconde de vidéo
-            générée consomme 200 crédits.
+            visage, upscale 4K). Sans abonnement, l&apos;utilisateur obtient un aperçu flouté de sa transformation.
+            Le rendu net en haute définition, ainsi que la génération vidéo, sont réservés aux abonnements payants
+            actifs, qui incluent des générations illimitées.
           </p>
         </Section>
 
@@ -81,27 +82,30 @@ export default function TermsPage() {
             régulièrement constituées. L&apos;accès est interdit aux mineurs.
           </p>
           <p>
-            À l&apos;inscription, vous recevez automatiquement 100 crédits offerts, utilisables pour générer 1 image
-            gratuitement, sans carte bancaire requise.
+            La création d&apos;un compte est gratuite et sans carte bancaire. Un compte gratuit permet de générer des
+            aperçus flous de vos transformations. L&apos;accès au rendu net en haute définition nécessite un abonnement
+            payant actif.
           </p>
         </Section>
 
-        <Section title="4. Crédits et paiement">
+        <Section title="4. Abonnements et paiement">
           <p>
-            Le Service fonctionne sur la base d&apos;un système de crédits. Les crédits peuvent être obtenus via :
+            L&apos;accès au rendu net en haute définition est réservé aux abonnements payants. Chaque formule
+            (Essentiel, Pro, Elite) inclut des générations illimitées, les différences portant sur la qualité, la
+            vitesse et les fonctionnalités disponibles (la génération vidéo étant réservée aux plans Pro et Elite).
           </p>
           <ul className="list-disc list-inside space-y-1 pl-2">
-            <li>L&apos;offre de bienvenue : 100 crédits gratuits à l&apos;inscription.</li>
-            <li>Les plans d&apos;abonnement mensuel ou annuel (Essentiel, Pro, Ultra).</li>
-            <li>Tout autre offre promotionnelle communiquée par l&apos;Éditeur.</li>
+            <li>Compte gratuit : aperçu flouté, sans engagement ni carte bancaire.</li>
+            <li>Abonnements mensuels ou annuels (Essentiel, Pro, Elite) : rendu net illimité.</li>
+            <li>Toute autre offre promotionnelle communiquée par l&apos;Éditeur.</li>
           </ul>
           <p>
             Les prix sont affichés en euros TTC sur la page Tarifs. L&apos;Éditeur se réserve le droit de modifier ses
-            tarifs à tout moment, sans que cela affecte rétroactivement les crédits déjà achetés.
+            tarifs à tout moment, sans effet rétroactif sur les périodes d&apos;abonnement déjà réglées.
           </p>
           <p>
-            Les crédits n&apos;ont pas de date d&apos;expiration tant que votre compte reste actif. Ils ne sont ni
-            remboursables ni cessibles à un tiers.
+            L&apos;abonnement est reconductible et peut être résilié à tout moment ; l&apos;accès reste actif jusqu&apos;à
+            la fin de la période en cours.
           </p>
           <p>
             Les paiements sont traités de manière sécurisée par Stripe, Inc. L&apos;Éditeur ne stocke pas vos
@@ -135,7 +139,7 @@ export default function TermsPage() {
           </ul>
           <p>
             Tout manquement à ces règles peut entraîner la suspension ou la suppression définitive de votre compte,
-            sans remboursement des crédits restants, ainsi que des poursuites judiciaires si nécessaire.
+            sans remboursement de l&apos;abonnement en cours, ainsi que des poursuites judiciaires si nécessaire.
           </p>
         </Section>
 
@@ -205,12 +209,13 @@ export default function TermsPage() {
 
         <Section title="10. Résiliation">
           <p>
-            Vous pouvez supprimer votre compte à tout moment depuis votre tableau de bord ou en contactant
-            l&apos;Éditeur. La suppression entraîne la perte des crédits restants, sans remboursement.
+            Vous pouvez résilier votre abonnement ou supprimer votre compte à tout moment depuis votre tableau de bord
+            ou en contactant l&apos;Éditeur. La suppression du compte met fin à l&apos;accès au Service, sans
+            remboursement de la période d&apos;abonnement en cours.
           </p>
           <p>
             L&apos;Éditeur peut suspendre ou résilier votre accès en cas de violation des présentes CGU, sans préavis
-            et sans remboursement des crédits restants.
+            et sans remboursement de l&apos;abonnement en cours.
           </p>
         </Section>
 

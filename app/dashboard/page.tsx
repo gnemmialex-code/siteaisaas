@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import {
-  Sparkles, Download, Trash2, Zap, Plus, LogOut,
+  Sparkles, Download, Trash2, Zap, LogOut,
   Shuffle, Film, Crown, Settings, History,
   ChevronRight, ChevronLeft, ChevronDown, Check, Star, Replace, PlusCircle, AlertCircle, StopCircle, Lock,
   Gift, Flame, Copy, LogIn, UserPlus, Users, Loader2, ExternalLink, Clock,
@@ -19,7 +19,6 @@ import { WATCH_OPTIONS, WATCH_BRANDS } from "@/lib/watch-options";
 import UploadBox from "../components/UploadBox";
 import VideoUploadBox from "../components/VideoUploadBox";
 import { STYLES, Style } from "../components/StyleSelector";
-import PaywallModal from "../components/PaywallModal";
 import LiveNotification from "../components/LiveNotification";
 
 /* ─── Refinement options ─────────────────────────────────── */
@@ -134,11 +133,6 @@ function userPlanTier(plan?: string): "essentiel" | "pro" | "elite" {
   return "essentiel";
 }
 
-const PLAN_CREDITS_MAX: Record<string, number> = {
-  essentiel: 2500,
-  pro:       11250,
-  elite:     11250,
-};
 
 function GenOptionChips({ title, options, selected, onSelect, planTier, onLocked }: {
   title: string; options: GenOption[]; selected: string | null;
@@ -282,9 +276,9 @@ interface ReferralInfo {
 const NAV_ITEMS = [
   { id: "create"       as NavView, label: "Créer",        icon: Sparkles, desc: "Nouvelle génération"   },
   { id: "history"      as NavView, label: "Historique",   icon: History,  desc: "Mes créations"         },
-  { id: "referral"     as NavView, label: "Parrainage",   icon: Gift,     desc: "Gagnez des crédits"    },
+  { id: "referral"     as NavView, label: "Parrainage",   icon: Gift,     desc: "Invitez vos amis"      },
   { id: "snaprouge"    as NavView, label: "Snap Rouge",   icon: Flame,    desc: "La technique secrète"  },
-  { id: "subscription" as NavView, label: "Abonnement",   icon: Crown,    desc: "Formules & crédits"    },
+  { id: "subscription" as NavView, label: "Abonnement",   icon: Crown,    desc: "Nos formules"          },
   { id: "settings"     as NavView, label: "Paramètres",   icon: Settings, desc: "Mon compte"            },
 ];
 
@@ -301,7 +295,7 @@ const PLANS_DATA = [
     highlights: [{ k: "Qualité", v: "HD 1080p" }, { k: "Vitesse", v: "~45-60s" }, { k: "Vidéo", v: "Non" }],
     features: [
       { t: "Qualité HD 1080p", strong: true },
-      { t: "2 500 crédits/mois", strong: true },
+      { t: "Générations illimitées", strong: true },
       { t: "Vitesse standard ~45-60s", strong: true },
       { t: "Photo uniquement (pas de vidéo, pas de SwapFace)" },
       { t: "8 styles disponibles" },
@@ -316,7 +310,7 @@ const PLANS_DATA = [
     highlights: [{ k: "Qualité", v: "Ultra 4K" }, { k: "Vitesse", v: "~20-30s" }, { k: "Vidéo", v: "5s" }],
     features: [
       { t: "Qualité Ultra 4K", strong: true },
-      { t: "10 250 crédits/mois", strong: true },
+      { t: "Générations illimitées", strong: true },
       { t: "Vitesse rapide ~20-30s", strong: true },
       { t: "Photo + SwapFace + Vidéo jusqu'à 5s", strong: true },
       { t: "🔥 Technique Snap Rouge incluse" },
@@ -332,7 +326,7 @@ const PLANS_DATA = [
     highlights: [{ k: "Qualité", v: "8K Photo" }, { k: "Vitesse", v: "~10-15s" }, { k: "Vidéo", v: "30s 4K" }],
     features: [
       { t: "Qualité 8K Photoréaliste", strong: true },
-      { t: "Crédits illimités", strong: true },
+      { t: "Générations illimitées", strong: true },
       { t: "Vitesse maximale ~10-15s", strong: true },
       { t: "Photo + SwapFace + Vidéo 4K jusqu'à 30s", strong: true },
       { t: "🔥 Technique Snap Rouge incluse" },
@@ -506,7 +500,6 @@ export default function DashboardPage() {
   const [isGenerating,  setIsGenerating]  = useState(false);
   const [genProgress,   setGenProgress]   = useState(0);
   const [error,         setError]         = useState<string | null>(null);
-  const [showPaywall,   setShowPaywall]   = useState(false);
   const [resultUrl,     setResultUrl]     = useState<string | null>(null);
   const [resultStyle,   setResultStyle]   = useState<string>("");
   // Vidéo IA (Seedance) renvoie un mp4 — affiché dans <video>, pas <Image>
@@ -572,7 +565,7 @@ export default function DashboardPage() {
             });
             const d = await res.json();
             if (res.ok && d.ok) {
-              toast.success("🎁 Parrainage appliqué — +100 crédits bonus !", { duration: 6000 });
+              toast.success("🎁 Code parrain appliqué !", { duration: 6000 });
               fetchStats();
             }
           } catch { /* silent */ }
@@ -827,10 +820,11 @@ export default function DashboardPage() {
       formData.append("mode",           "video");
     }
 
-    // ── Comptes gratuits : aperçu simulé (aucune vraie génération) ───────────
-    // On ne touche pas à Replicate ni aux crédits : fausse attente de 3 s, puis
-    // on affiche la photo uploadée — automatiquement floutée + CTA paiement
-    // (le rendu gère déjà blur + LockedOverlay quand !isPaid).
+    // ── Comptes non payants : aperçu simulé (aucune vraie génération) ────────
+    // On ne touche ni à Replicate ni aux crédits : fausse attente (~10 s pour
+    // rester crédible), puis on affiche la photo uploadée — automatiquement
+    // floutée + CTA abonnement (le rendu gère déjà blur + LockedOverlay quand
+    // !isPaid). Le rendu NET est réservé aux abonnements payants.
     const paidPlan = isPaidPlan(stats?.plan);
     const previewFile = genType === "swapface" ? swapTgtFile : styleFile;
     if (!paidPlan && genType !== "video" && previewFile) {
@@ -840,7 +834,8 @@ export default function DashboardPage() {
       const fakeIv = simulateProgress();
       const previewUrl = URL.createObjectURL(previewFile);
 
-      await new Promise((r) => setTimeout(r, 3000));
+      // ~10 s (aléatoire 8,5–11 s) pour imiter une vraie génération
+      await new Promise((r) => setTimeout(r, 8500 + Math.random() * 2500));
       clearInterval(fakeIv);
 
       if (cancelRef.current) {
@@ -868,13 +863,29 @@ export default function DashboardPage() {
       const res = await fetch("/api/generate", { method: "POST", body: formData });
       clearInterval(iv);
 
-      if (res.status === 402) { setIsGenerating(false); setShowPaywall(true); return; }
+      if (res.status === 402) {
+        setIsGenerating(false);
+        toast("Passez à un abonnement pour générer en HD", { icon: "🔒" });
+        router.push("/pricing");
+        return;
+      }
 
       const rawText = await res.text();
       let startData: Record<string, unknown>;
       try { startData = JSON.parse(rawText); }
       catch { throw new Error(rawText || `Erreur serveur (${res.status})`); }
       if (!res.ok) throw new Error((startData.error as string) || `Erreur serveur (${res.status})`);
+
+      // Non payant : le serveur renvoie un aperçu (jamais de vraie génération).
+      // On affiche la photo uploadée floutée + CTA abonnement.
+      if (startData.preview) {
+        const previewFile = genType === "swapface" ? swapTgtFile : styleFile;
+        setGenProgress(100);
+        if (previewFile) setResultUrl(URL.createObjectURL(previewFile));
+        setResultStyle(selectedStyle?.label ?? "");
+        setIsGenerating(false);
+        return;
+      }
 
       const jobId        = startData.job_id        as string | undefined;
       const predictionId = startData.prediction_id as string | undefined;
@@ -998,7 +1009,7 @@ export default function DashboardPage() {
               className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-accent-violet/40 text-accent-violet hover:bg-accent-violet/10 transition-all text-sm font-bold"
             >
               <UserPlus className="w-4 h-4" />
-              Créer un compte — 100 crédits offerts
+              Créer un compte gratuit
             </Link>
           </div>
         ) : (
@@ -1010,9 +1021,17 @@ export default function DashboardPage() {
             <div className="min-w-0 flex-1">
               <p className="font-semibold text-sm truncate">{userEmail?.split("@")[0] ?? "—"}</p>
               <div className="flex items-center gap-1.5 mt-0.5 overflow-hidden">
-                <Zap className="w-3 h-3 text-accent-violet flex-shrink-0" />
-                <span className="text-accent-violet text-xs font-bold truncate">{stats?.credits ?? "—"}</span>
-                <span className="text-white/30 text-xs flex-shrink-0">crédits</span>
+                {isPaid ? (
+                  <>
+                    <Crown className="w-3 h-3 text-accent-violet flex-shrink-0" />
+                    <span className="text-accent-violet text-xs font-bold truncate">Abonnement actif</span>
+                  </>
+                ) : (
+                  <>
+                    <Lock className="w-3 h-3 text-white/40 flex-shrink-0" />
+                    <span className="text-white/40 text-xs font-bold truncate">Aperçu gratuit</span>
+                  </>
+                )}
               </div>
             </div>
             {/* Plan badge */}
@@ -1048,30 +1067,30 @@ export default function DashboardPage() {
 
         {/* Bottom */}
         <div className="p-4 border-t border-surface-border space-y-3">
-          {/* Credits bar */}
+          {/* Statut d'abonnement */}
           {isAuthed !== false && (() => {
-            const tier      = userPlanTier(stats?.plan);
-            const maxCr     = PLAN_CREDITS_MAX[tier] ?? 2500;
-            const isElite   = tier === "elite";
-            const pct       = isElite ? 100 : Math.min(((stats?.credits ?? 0) / maxCr) * 100, 100);
-            const maxLabel  = isElite ? "∞" : maxCr.toLocaleString("fr-FR");
+            const tier = userPlanTier(stats?.plan);
+            if (isPaid) {
+              const isElite = tier === "elite";
+              const label   = isElite ? "Elite" : tier === "pro" ? "Pro" : "Essentiel";
+              return (
+                <div className="px-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-white/40">Formule</span>
+                    <span className={`font-bold ${isElite ? "text-amber-400" : "text-accent-violet"}`}>
+                      {label} · générations illimitées
+                    </span>
+                  </div>
+                </div>
+              );
+            }
             return (
-              <div className="px-1">
-                <div className="flex justify-between text-xs mb-1.5">
-                  <span className="text-white/40">Crédits restants</span>
-                  <span className={`font-bold ${isElite ? "text-amber-400" : "text-accent-violet"}`}>
-                    {isElite ? "∞" : (stats?.credits ?? 0)} / {maxLabel}
-                  </span>
-                </div>
-                <div className="h-1.5 bg-surface-hover rounded-full overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${pct}%` }}
-                    transition={{ duration: 1.2, ease: "easeOut" }}
-                    className={`h-full rounded-full ${isElite ? "bg-gradient-to-r from-amber-400 to-accent-neon" : "bg-gradient-violet-neon"}`}
-                  />
-                </div>
-              </div>
+              <Link href="/pricing" className="block px-3 py-2.5 rounded-xl bg-accent-violet/10 border border-accent-violet/30 text-center">
+                <p className="text-xs text-white/70 leading-relaxed">
+                  Compte gratuit — <span className="text-accent-violet font-bold">aperçu flouté</span>
+                </p>
+                <p className="text-[11px] text-accent-violet font-semibold mt-0.5">Débloquer la HD →</p>
+              </Link>
             );
           })()}
 
@@ -1137,7 +1156,7 @@ export default function DashboardPage() {
                   <Lock className="w-5 h-5 text-accent-violet flex-shrink-0 hidden sm:block" />
                   <div>
                     <p className="font-bold text-sm text-white">Vous explorez le Dashboard en mode aperçu</p>
-                    <p className="text-white/50 text-xs mt-0.5">Connectez-vous ou créez un compte pour générer vos images — 100 crédits offerts à l&apos;inscription</p>
+                    <p className="text-white/50 text-xs mt-0.5">Connectez-vous ou créez un compte gratuit pour générer un aperçu — le rendu net en HD est réservé aux abonnements</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
@@ -1321,7 +1340,6 @@ export default function DashboardPage() {
                           onCancel={handleCancel}
                           isGenerating={isGenerating}
                           canGenerate={!!(styleFile && freePrompt.trim() && consent)}
-                          credits={100}
                           step={4}
                           plan={stats?.plan}
                         />
@@ -1438,7 +1456,7 @@ export default function DashboardPage() {
                         </div>
                       </div>
                       <div className="lg:col-span-1">
-                        <GenerateCard consent={consent} setConsent={setConsent} error={error} onGenerate={handleGenerate} onCancel={handleCancel} isGenerating={isGenerating} canGenerate={!!(videoFile && videoPrompt && consent)} credits={150} step={5} />
+                        <GenerateCard consent={consent} setConsent={setConsent} error={error} onGenerate={handleGenerate} onCancel={handleCancel} isGenerating={isGenerating} canGenerate={!!(videoFile && videoPrompt && consent)} step={5} plan={stats?.plan} />
                       </div>
                     </div>
                   )}
@@ -1765,7 +1783,7 @@ export default function DashboardPage() {
                       <Gift className="w-7 h-7 text-accent-violet" />
                       Parrainage
                     </h1>
-                    <p className="text-white/40">Invitez vos amis et gagnez des crédits gratuits</p>
+                    <p className="text-white/40">Invitez vos amis à découvrir AstraCrea</p>
                   </div>
 
                   <div className="max-w-3xl space-y-5">
@@ -1777,20 +1795,20 @@ export default function DashboardPage() {
                           <div className="w-10 h-10 rounded-xl bg-accent-violet/15 flex items-center justify-center text-accent-violet">
                             <Users className="w-5 h-5" />
                           </div>
-                          <p className="text-2xl font-black text-accent-violet">+200</p>
+                          <p className="text-lg font-black text-accent-violet">Partagez</p>
                         </div>
-                        <p className="font-bold text-white text-sm mb-1">crédits pour vous</p>
-                        <p className="text-white/45 text-xs leading-relaxed">À chaque ami qui s&apos;inscrit avec votre lien de parrainage</p>
+                        <p className="font-bold text-white text-sm mb-1">Votre lien unique</p>
+                        <p className="text-white/45 text-xs leading-relaxed">Envoyez votre lien de parrainage à vos amis pour leur faire découvrir AstraCrea.</p>
                       </div>
                       <div className="card border-green-500/25 bg-green-500/5">
                         <div className="flex items-center gap-3 mb-2">
                           <div className="w-10 h-10 rounded-xl bg-green-500/15 flex items-center justify-center text-green-400">
                             <Gift className="w-5 h-5" />
                           </div>
-                          <p className="text-2xl font-black text-green-400">+100</p>
+                          <p className="text-lg font-black text-green-400">Bientôt</p>
                         </div>
-                        <p className="font-bold text-white text-sm mb-1">crédits pour votre ami</p>
-                        <p className="text-white/45 text-xs leading-relaxed">En plus des 100 crédits de bienvenue, soit 200 crédits au total</p>
+                        <p className="font-bold text-white text-sm mb-1">Des avantages à venir</p>
+                        <p className="text-white/45 text-xs leading-relaxed">Un programme de récompenses parrainage arrive prochainement pour les comptes les plus actifs.</p>
                       </div>
                     </div>
 
@@ -1852,7 +1870,7 @@ export default function DashboardPage() {
                               </button>
                             </div>
                             <p className="text-white/30 text-xs mt-2">
-                              💡 Partagez ce lien : dès qu&apos;un ami crée son compte avec, vous recevez automatiquement vos 200 crédits.
+                              💡 Partagez ce lien : chaque ami qui crée son compte avec est comptabilisé dans vos filleuls.
                             </p>
                           </div>
                         </div>
@@ -1863,9 +1881,9 @@ export default function DashboardPage() {
                             <p className="text-3xl font-black gradient-text">{referral.referrals}</p>
                             <p className="text-white/40 text-sm mt-1">Filleul{referral.referrals !== 1 ? "s" : ""} inscrit{referral.referrals !== 1 ? "s" : ""}</p>
                           </div>
-                          <div className="card text-center">
-                            <p className="text-3xl font-black text-green-400">+{referral.credits_earned}</p>
-                            <p className="text-white/40 text-sm mt-1">Crédits gagnés</p>
+                          <div className="card text-center flex flex-col items-center justify-center">
+                            <Gift className="w-7 h-7 text-green-400 mb-1" />
+                            <p className="text-white/40 text-sm">Avantages bientôt disponibles</p>
                           </div>
                         </div>
                       </>
@@ -2009,7 +2027,7 @@ export default function DashboardPage() {
                                 <div className={`w-10 h-10 rounded-xl ${plan.badgeBg} flex items-center justify-center ${plan.badgeText}`}><Icon className="w-5 h-5" /></div>
                                 <div>
                                   <p className={`font-bold ${isElite ? "gold-shimmer-text text-lg" : ""}`}>{plan.name}</p>
-                                  <p className={`text-xs ${isElite ? "gold-shimmer-text font-bold" : plan.badgeText}`}>{plan.credits} crédits/mois</p>
+                                  <p className={`text-xs ${isElite ? "gold-shimmer-text font-bold" : plan.badgeText}`}>Générations illimitées</p>
                                 </div>
                               </div>
                               <p className="text-3xl font-black mb-3">{plan.price}<span className="text-sm font-normal text-white/40">/mois</span></p>
@@ -2040,15 +2058,19 @@ export default function DashboardPage() {
                       </div>
                       <div className="card bg-[#0D0D0D] flex items-center gap-4">
                         <div className="w-12 h-12 bg-accent-violet/10 rounded-xl flex items-center justify-center text-accent-violet">
-                          <Zap className="w-6 h-6" />
+                          {isPaid ? <Crown className="w-6 h-6" /> : <Lock className="w-6 h-6" />}
                         </div>
                         <div className="flex-1">
-                          <p className="text-white/50 text-sm">Crédits restants</p>
-                          <p className="text-2xl font-black text-accent-violet">{stats?.credits ?? 0}</p>
+                          <p className="text-white/50 text-sm">{isPaid ? "Abonnement" : "Compte gratuit"}</p>
+                          <p className="text-lg font-black text-accent-violet">
+                            {isPaid ? "Générations illimitées" : "Aperçu flouté"}
+                          </p>
                         </div>
-                        <Link href="/pricing" className="btn-ghost flex items-center gap-1 text-sm">
-                          <Plus className="w-4 h-4" />Recharger
-                        </Link>
+                        {!isPaid && (
+                          <Link href="/pricing" className="btn-ghost flex items-center gap-1 text-sm">
+                            <Crown className="w-4 h-4" />Débloquer
+                          </Link>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -2100,8 +2122,10 @@ export default function DashboardPage() {
                         <span className="font-bold">{stats?.video_generations ?? 0}</span>
                       </div>
                       <div className="flex justify-between py-2">
-                        <span className="text-white/50 text-sm">Crédits restants</span>
-                        <span className="font-bold text-accent-violet">{stats?.credits ?? 0}</span>
+                        <span className="text-white/50 text-sm">Abonnement</span>
+                        <span className="font-bold text-accent-violet">
+                          {isPaid ? `${userPlanTier(stats?.plan) === "elite" ? "Elite" : userPlanTier(stats?.plan) === "pro" ? "Pro" : "Essentiel"} · illimité` : "Gratuit (aperçu)"}
+                        </span>
                       </div>
                     </div>
                     <motion.button whileHover={{scale:1.01}} whileTap={{scale:0.98}} onClick={handleLogout}
@@ -2117,7 +2141,6 @@ export default function DashboardPage() {
         </div>
       </main>
 
-      <PaywallModal isOpen={showPaywall} onClose={()=>setShowPaywall(false)} reason="Crédits épuisés — Rechargez pour continuer" />
       <LiveNotification />
       {upgradeTarget && (
         <PlanUpgradeModal target={upgradeTarget} onClose={() => setUpgradeTarget(null)} />
@@ -2153,7 +2176,7 @@ function AuthGateModal({ onClose }: { onClose: () => void }) {
         </p>
         <div className="inline-flex items-center gap-1.5 bg-green-500/10 border border-green-500/30 text-green-400 text-xs font-bold px-3 py-1.5 rounded-full mb-6">
           <Zap className="w-3.5 h-3.5" />
-          100 crédits offerts = 1 image gratuite
+          Gratuit — aperçu sans carte bancaire
         </div>
 
         <Link
@@ -2250,7 +2273,7 @@ function StepBadge({ n }: { n: number }) {
 }
 
 function GenerateCard({
-  consent, setConsent, error, onGenerate, onCancel, isGenerating, canGenerate, credits, step, plan,
+  consent, setConsent, error, onGenerate, onCancel, isGenerating, canGenerate, step, plan,
 }: {
   consent: boolean;
   setConsent: (v: boolean) => void;
@@ -2259,11 +2282,11 @@ function GenerateCard({
   onCancel?: () => void;
   isGenerating?: boolean;
   canGenerate: boolean;
-  credits: number;
   step: number;
   plan?: string;
 }) {
   const qBadge = planQualityBadge(plan);
+  const paid   = isPaidPlan(plan);
   return (
     <div className="card">
       <h2 className="font-bold text-base mb-4 flex items-center gap-2">
@@ -2318,7 +2341,7 @@ function GenerateCard({
             />
           )}
           <Sparkles className="w-5 h-5 relative z-10" />
-          <span className="relative z-10">Générer {qBadge.label} — {credits} crédits</span>
+          <span className="relative z-10">{paid ? `Générer ${qBadge.label}` : "Générer l'aperçu"}</span>
         </motion.button>
       )}
 

@@ -85,7 +85,7 @@ export default function PrivacyPage() {
                 </tr>
                 <tr>
                   <td className="py-2 pr-4 align-top">Usage</td>
-                  <td className="py-2 pr-4 align-top">Historique des générations, crédits consommés</td>
+                  <td className="py-2 pr-4 align-top">Historique des générations, statut d&apos;abonnement</td>
                   <td className="py-2 align-top">Tableau de bord, facturation</td>
                 </tr>
                 <tr>
@@ -111,7 +111,7 @@ export default function PrivacyPage() {
         <Section title="3. Base légale du traitement">
           <p>Vos données sont traitées sur les bases légales suivantes (article 6 du RGPD) :</p>
           <ul className="list-disc list-inside space-y-1 pl-2">
-            <li><span className="text-white font-medium">Exécution du contrat</span> : traitement de votre photo pour générer l&apos;image, gestion de votre compte et de vos crédits.</li>
+            <li><span className="text-white font-medium">Exécution du contrat</span> : traitement de votre photo pour générer l&apos;image, gestion de votre compte et de votre abonnement.</li>
             <li><span className="text-white font-medium">Consentement explicite</span> : traitement de votre image faciale (donnée biométrique au sens large), collecté lors de l&apos;inscription et du premier upload.</li>
             <li><span className="text-white font-medium">Intérêt légitime</span> : sécurité du Service, prévention des fraudes, amélioration du Service.</li>
             <li><span className="text-white font-medium">Obligation légale</span> : conservation des données de facturation conformément aux obligations fiscales françaises (10 ans).</li>
