@@ -492,7 +492,9 @@ export default function DashboardPage() {
   /* generation precision options */
   const [renderStyle,   setRenderStyle]   = useState<string | null>(null);
   const [intensity,     setIntensity]     = useState<string>("moderate");
-  const [preserveOutfit,setPreserveOutfit]= useState(false);
+  // La case « Conserver la tenue actuelle » a été retirée de l'interface :
+  // l'option est désormais toujours active (comme si elle était cochée par défaut).
+  const [preserveOutfit] = useState(true);
 
   /* debug / prompt preview */
   const [showDebug,     setShowDebug]     = useState(false);
@@ -1357,34 +1359,8 @@ export default function DashboardPage() {
                             onLocked={(rp, f) => setUpgradeTarget({ plan: rp, feature: f })}
                           />
 
-                          {/* Conserver la tenue */}
-                          {(() => {
-                            const outfitLocked = userPlanTier(stats?.plan) === "essentiel";
-                            return (
-                              <label
-                                className={`flex items-center gap-2.5 cursor-pointer group ${outfitLocked ? "opacity-50" : ""}`}
-                                onClick={outfitLocked ? (e) => { e.preventDefault(); setUpgradeTarget({ plan: "pro", feature: "Conserver la tenue" }); } : undefined}
-                              >
-                                <div className="relative flex-shrink-0">
-                                  <input
-                                    type="checkbox"
-                                    checked={preserveOutfit && !outfitLocked}
-                                    onChange={e => !outfitLocked && setPreserveOutfit(e.target.checked)}
-                                    className="sr-only"
-                                    readOnly={outfitLocked}
-                                  />
-                                  <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${preserveOutfit && !outfitLocked ? "bg-accent-violet border-accent-violet" : "border-surface-border group-hover:border-accent-violet/50"}`}>
-                                    {preserveOutfit && !outfitLocked && <span className="text-white text-[9px] font-bold">✓</span>}
-                                  </div>
-                                </div>
-                                <span className={`text-white/60 text-xs flex items-center gap-1 ${outfitLocked ? "line-through" : ""}`}>
-                                  {outfitLocked && <Lock className="w-2.5 h-2.5 flex-shrink-0" />}
-                                  Conserver la tenue actuelle (ne pas changer les vêtements)
-                                  {outfitLocked && <span className="text-[8px] font-bold text-accent-violet/70 ml-1 no-underline not-italic" style={{textDecoration:"none"}}>Pro</span>}
-                                </span>
-                              </label>
-                            );
-                          })()}
+                          {/* La case « Conserver la tenue actuelle » a été retirée :
+                              l'option est toujours active côté génération. */}
                         </div>
                         </div>{/* end grid description+options */}
 
@@ -1400,8 +1376,8 @@ export default function DashboardPage() {
                           plan={stats?.plan}
                         />
 
-                        {/* Bouton debug — voir le prompt exact */}
-                        {genType === "create" && (
+                        {/* Bouton debug — voir le prompt exact (Admin uniquement) */}
+                        {genType === "create" && userEmail === "gnemmialex@gmail.com" && (
                           <div>
                             <button
                               onClick={handleDebugPrompt}
