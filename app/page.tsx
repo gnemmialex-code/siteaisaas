@@ -242,11 +242,15 @@ function ReviewsMarquee() {
 
 function ExamplesGallery() {
   const [tab, setTab] = useState<"images" | "videos">("images");
+  // Téléphone : les autres exemples sont repliés derrière un bouton « Voir plus »
+  const [showAll, setShowAll] = useState(false);
+  const extraExamples = EXAMPLES_IMAGES.filter(e => e.style !== MOBILE_EXAMPLE.style);
 
   return (
     <div>
-      {/* ── TÉLÉPHONE : uniquement l'exemple photo + la vidéo, côte à côte ── */}
-      <div className="grid grid-cols-2 gap-3 sm:hidden">
+      {/* ── TÉLÉPHONE : l'exemple photo + la vidéo, côte à côte ── */}
+      <div className="sm:hidden">
+      <div className="grid grid-cols-2 gap-3">
         <div
           className="relative rounded-2xl overflow-hidden border border-surface-border"
           style={{ aspectRatio: "9/16" }}
@@ -277,6 +281,43 @@ function ExamplesGallery() {
           </div>
         </div>
       </div>
+
+      {/* Autres exemples, dépliés par « Voir plus » */}
+      <AnimatePresence initial={false}>
+        {showAll && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="overflow-hidden"
+          >
+            <div className="grid grid-cols-2 gap-3 mt-3">
+              {extraExamples.map((ex) => (
+                <div
+                  key={ex.style}
+                  className="relative rounded-2xl overflow-hidden border border-surface-border"
+                  style={{ aspectRatio: "9/16" }}
+                >
+                  <BeforeAfterSlider before={ex.before} after={ex.after} alt={ex.style} />
+                  <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/70 to-transparent pointer-events-none">
+                    <p className="text-white text-xs font-medium">{ex.style}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <button
+        onClick={() => setShowAll(v => !v)}
+        className="mx-auto mt-3 flex items-center gap-1.5 px-4 py-2 rounded-xl bg-surface border border-surface-border text-white/70 hover:text-white hover:border-accent-violet/40 text-xs font-medium transition-all active:scale-95"
+      >
+        {showAll ? "Voir moins" : "Voir plus"}
+        <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${showAll ? "rotate-180" : ""}`} />
+      </button>
+      </div>{/* end téléphone */}
 
       {/* ── ORDINATEUR : onglets Photos / Vidéos ── */}
       <div className="hidden sm:block">
@@ -409,8 +450,8 @@ function DemoVideoSection() {
   const videoInView  = useInView(videoZoneRef, { once: true, margin: "300px" });
 
   return (
-    /* Masquée sur téléphone, visible à partir de sm (ordinateur/tablette) */
-    <section id="demo" className="hidden sm:block py-24 px-4 sm:px-6 relative overflow-hidden">
+    /* Visible partout, en format horizontal 16/9 — compactée sur téléphone */
+    <section id="demo" className="py-8 sm:py-24 px-4 sm:px-6 relative overflow-hidden">
       {/* Orbes décoratifs */}
       <motion.div
         className="absolute -top-20 left-1/4 w-80 h-80 rounded-full bg-accent-violet/12 blur-3xl pointer-events-none"
@@ -428,16 +469,16 @@ function DemoVideoSection() {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-10"
+          className="text-center mb-4 sm:mb-10"
         >
-          <span className="inline-flex items-center gap-2 bg-accent-violet/10 border border-accent-violet/30 text-accent-violet text-sm font-semibold px-4 py-2 rounded-full mb-6">
-            <Play className="w-4 h-4 fill-current" />
+          <span className="inline-flex items-center gap-1.5 sm:gap-2 bg-accent-violet/10 border border-accent-violet/30 text-accent-violet text-[11px] sm:text-sm font-semibold px-3 py-1 sm:px-4 sm:py-2 rounded-full mb-2 sm:mb-6">
+            <Play className="w-3 h-3 sm:w-4 sm:h-4 fill-current" />
             Démonstration
           </span>
-          <h2 className="text-4xl sm:text-5xl font-bold mb-4">
+          <h2 className="text-xl sm:text-5xl font-bold mb-1 sm:mb-4">
             Voyez la magie <span className="gradient-text">en action</span>
           </h2>
-          <p className="text-white/50 text-lg max-w-xl mx-auto">
+          <p className="text-white/50 text-xs sm:text-lg max-w-xl mx-auto">
             De la photo originale au résultat final : découvrez AstraCrea en vidéo
           </p>
         </motion.div>
@@ -602,20 +643,26 @@ export default function HomePage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
-            className="grid grid-cols-2 sm:grid-cols-4 gap-6 max-w-2xl mx-auto"
+            className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-6 max-w-2xl mx-auto"
           >
-            {STATS.map((stat) => (
-              <div key={stat.label} className="text-center">
-                <div className="text-3xl font-black gradient-text">{stat.value}</div>
-                <div className="text-white/50 text-sm mt-1">{stat.label}</div>
+            {STATS.map((stat, i) => (
+              <div
+                key={stat.label}
+                /* Sur téléphone : « Générations » et « Note moyenne » masquées,
+                   seuls « Temps moyen » et « Résolution max » restent, en plus petit */
+                className={`text-center ${i < 2 ? "hidden sm:block" : ""}`}
+              >
+                <div className="text-lg sm:text-3xl font-black gradient-text">{stat.value}</div>
+                <div className="text-white/50 text-[10px] sm:text-sm mt-0.5 sm:mt-1">{stat.label}</div>
               </div>
             ))}
           </motion.div>
         </div>
       </section>
 
-      {/* ══ SÉPARATEUR ANIMÉ HERO → AVIS ════════════════════════════════ */}
-      <div className="relative h-28 overflow-hidden pointer-events-none select-none">
+      {/* ══ SÉPARATEUR ANIMÉ HERO → SUITE ═══════════════════════════════ */}
+      {/* Fortement réduit sur téléphone pour coller les stats aux exemples */}
+      <div className="relative h-10 sm:h-28 overflow-hidden pointer-events-none select-none">
         {/* Ligne lumineuse */}
         <motion.div
           className="absolute top-1/2 left-0 right-0 h-px"
@@ -653,12 +700,12 @@ export default function HomePage() {
       </div>
 
       {/* ══ AVIS · VIDÉO DÉMO · EXEMPLES ═════════════════════════════════
-          Téléphone   : Exemples → Avis (la vidéo démo est masquée)
+          Téléphone   : Exemples → Vidéo démo → Avis
           Ordinateur  : Avis → Vidéo démo → Exemples                        */}
       <div className="flex flex-col">
 
       {/* ══ AVIS CLIENTS ══════════════════════════════════════════════════ */}
-      <section className="order-2 sm:order-1 py-10 overflow-hidden">
+      <section className="order-3 sm:order-1 py-10 overflow-hidden">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -679,8 +726,9 @@ export default function HomePage() {
         <ReviewsMarquee />
       </section>
 
-      {/* ══ VIDÉO DÉMO (sous les avis, masquée sur téléphone) ════════════ */}
-      <div className="order-3 sm:order-2">
+      {/* ══ VIDÉO DÉMO ═══════════════════════════════════════════════════
+          Téléphone : juste sous les exemples · Ordinateur : sous les avis */}
+      <div className="order-2 sm:order-2">
         <DemoVideoSection />
       </div>
 
