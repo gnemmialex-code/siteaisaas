@@ -580,10 +580,10 @@ export default function HomePage() {
       <Navbar />
 
       {/* ══ HERO ══════════════════════════════════════════════════════════ */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+      <section className="relative min-h-[78vh] sm:min-h-screen flex items-center justify-center overflow-hidden">
         <HeroImageBackground />
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-32 text-center">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-20 sm:py-32 text-center">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -611,7 +611,7 @@ export default function HomePage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-xl sm:text-2xl text-white/60 max-w-2xl mx-auto mb-12"
+            className="text-xl sm:text-2xl text-white/60 max-w-2xl mx-auto mb-8 sm:mb-12"
           >
             Les montres de luxe les plus rares au poignet,
             résultats 4K ultra-réalistes en moins de 30 secondes !
@@ -621,7 +621,7 @@ export default function HomePage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16"
+            className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-4 sm:mb-16"
           >
             <div className="relative">
               <motion.div
@@ -638,22 +638,17 @@ export default function HomePage() {
             </div>
           </motion.div>
 
-          {/* Stats */}
+          {/* Stats — entièrement masquées sur téléphone */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
-            className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-6 max-w-2xl mx-auto"
+            className="hidden sm:grid sm:grid-cols-4 gap-6 max-w-2xl mx-auto"
           >
-            {STATS.map((stat, i) => (
-              <div
-                key={stat.label}
-                /* Sur téléphone : « Générations » et « Note moyenne » masquées,
-                   seuls « Temps moyen » et « Résolution max » restent, en plus petit */
-                className={`text-center ${i < 2 ? "hidden sm:block" : ""}`}
-              >
-                <div className="text-lg sm:text-3xl font-black gradient-text">{stat.value}</div>
-                <div className="text-white/50 text-[10px] sm:text-sm mt-0.5 sm:mt-1">{stat.label}</div>
+            {STATS.map((stat) => (
+              <div key={stat.label} className="text-center">
+                <div className="text-3xl font-black gradient-text">{stat.value}</div>
+                <div className="text-white/50 text-sm mt-1">{stat.label}</div>
               </div>
             ))}
           </motion.div>
