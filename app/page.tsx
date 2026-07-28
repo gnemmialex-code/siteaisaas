@@ -188,42 +188,42 @@ function HeroImageBackground() {
 
 function ReviewsMarquee() {
   return (
-    <div className="relative overflow-hidden py-2">
+    <div className="relative overflow-hidden py-1 sm:py-2">
       {/* Fade gauche */}
-      <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none" />
+      <div className="absolute left-0 top-0 bottom-0 w-10 sm:w-24 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none" />
       {/* Fade droite */}
-      <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none" />
+      <div className="absolute right-0 top-0 bottom-0 w-10 sm:w-24 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none" />
 
       <div
-        className="flex gap-3 w-max"
+        className="flex gap-2 sm:gap-3 w-max"
         style={{ animation: "marquee 40s linear infinite" }}
       >
         {[...REVIEWS, ...REVIEWS].map((review, i) => (
           <div
             key={i}
-            className="w-64 flex-shrink-0 card border border-surface-border p-3.5 rounded-xl"
+            className="w-48 sm:w-64 flex-shrink-0 card border border-surface-border p-2.5 sm:p-3.5 rounded-xl"
           >
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-1.5 sm:mb-2">
               <div className="flex gap-0.5">
                 {Array.from({ length: review.stars }).map((_, s) => (
-                  <Star key={s} className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                  <Star key={s} className="w-2.5 h-2.5 sm:w-3 sm:h-3 fill-yellow-400 text-yellow-400" />
                 ))}
                 {Array.from({ length: 5 - review.stars }).map((_, s) => (
-                  <Star key={s} className="w-3 h-3 text-white/20" />
+                  <Star key={s} className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white/20" />
                 ))}
               </div>
-              <Quote className="w-3.5 h-3.5 text-accent-violet/40" />
+              <Quote className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-accent-violet/40" />
             </div>
-            <p className="text-white/70 text-xs leading-relaxed mb-3 line-clamp-2">
+            <p className="text-white/70 text-[10px] sm:text-xs leading-relaxed mb-2 sm:mb-3 line-clamp-2">
               &ldquo;{review.text}&rdquo;
             </p>
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-gradient-violet-neon flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-gradient-violet-neon flex items-center justify-center text-white text-[9px] sm:text-[10px] font-bold flex-shrink-0">
                 {review.name.charAt(0)}
               </div>
               <div>
-                <p className="text-white font-medium text-xs leading-none">{review.name}</p>
-                <p className="text-white/40 text-[10px] mt-0.5">{review.city}</p>
+                <p className="text-white font-medium text-[10px] sm:text-xs leading-none">{review.name}</p>
+                <p className="text-white/40 text-[9px] sm:text-[10px] mt-0.5">{review.city}</p>
               </div>
             </div>
           </div>
@@ -479,7 +479,7 @@ function DemoVideoSection() {
             Voyez la magie <span className="gradient-text">en action</span>
           </h2>
           <p className="text-white/50 text-xs sm:text-lg max-w-xl mx-auto">
-            De la photo originale au résultat final : découvrez AstraCrea en vidéo
+            De la photo originale au résultat final !
           </p>
         </motion.div>
 
@@ -580,16 +580,18 @@ export default function HomePage() {
       <Navbar />
 
       {/* ══ HERO ══════════════════════════════════════════════════════════ */}
-      <section className="relative min-h-[78vh] sm:min-h-screen flex items-center justify-center overflow-hidden">
+      {/* Téléphone : contenu ancré en bas (items-end) — le vide restant passe au-dessus,
+          sur la galerie de fond, au lieu de séparer le bouton des exemples. */}
+      <section className="relative min-h-[52vh] sm:min-h-screen flex items-end sm:items-center justify-center overflow-hidden">
         <HeroImageBackground />
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-20 sm:py-32 text-center">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-10 pb-0 sm:py-32 text-center">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <span className="inline-flex items-center gap-2 bg-accent-violet/10 border border-accent-violet/30 text-accent-violet text-sm font-medium px-4 py-2 rounded-full mb-8">
+            <span className="inline-flex items-center gap-2 bg-accent-violet/10 border border-accent-violet/30 text-accent-violet text-xs sm:text-sm font-medium px-3 py-1.5 sm:px-4 sm:py-2 rounded-full mb-4 sm:mb-8">
               <Sparkles className="w-4 h-4" />
               Technologie IA de pointe
             </span>
@@ -599,7 +601,7 @@ export default function HomePage() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-5xl sm:text-7xl lg:text-8xl font-black leading-tight mb-6"
+            className="text-4xl sm:text-7xl lg:text-8xl font-black leading-tight mb-3 sm:mb-6"
           >
             Fake It{" "}
             <span className="gradient-text">Until You</span>
@@ -611,17 +613,17 @@ export default function HomePage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-xl sm:text-2xl text-white/60 max-w-2xl mx-auto mb-8 sm:mb-12"
+            className="text-sm sm:text-2xl text-white/60 max-w-2xl mx-auto mb-5 sm:mb-12"
           >
             Les montres de luxe les plus rares au poignet,
-            résultats 4K ultra-réalistes en moins de 30 secondes !
+            résultats 4K ultra en moins de 30 secondes !
           </motion.p>
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-4 sm:mb-16"
+            className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-0 sm:mb-16"
           >
             <div className="relative">
               <motion.div
@@ -656,8 +658,8 @@ export default function HomePage() {
       </section>
 
       {/* ══ SÉPARATEUR ANIMÉ HERO → SUITE ═══════════════════════════════ */}
-      {/* Fortement réduit sur téléphone pour coller les stats aux exemples */}
-      <div className="relative h-10 sm:h-28 overflow-hidden pointer-events-none select-none">
+      {/* Masqué sur téléphone : le hero enchaîne directement sur les exemples */}
+      <div className="relative hidden sm:block h-28 overflow-hidden pointer-events-none select-none">
         {/* Ligne lumineuse */}
         <motion.div
           className="absolute top-1/2 left-0 right-0 h-px"
@@ -700,20 +702,20 @@ export default function HomePage() {
       <div className="flex flex-col">
 
       {/* ══ AVIS CLIENTS ══════════════════════════════════════════════════ */}
-      <section className="order-3 sm:order-1 py-10 overflow-hidden">
+      <section className="order-3 sm:order-1 py-5 sm:py-10 overflow-hidden">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-6 px-4"
+          className="text-center mb-3 sm:mb-6 px-4"
         >
-          <div className="flex items-center justify-center gap-1 mb-2">
+          <div className="flex items-center justify-center gap-1 mb-1 sm:mb-2">
             {Array.from({ length: 5 }).map((_, i) => (
-              <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+              <Star key={i} className="w-3 h-3 sm:w-4 sm:h-4 fill-yellow-400 text-yellow-400" />
             ))}
-            <span className="ml-2 text-white/60 text-xs font-medium">4,9 / 5 — 2 300+ avis</span>
+            <span className="ml-2 text-white/60 text-[10px] sm:text-xs font-medium">4,9 / 5 — 2 300+ avis</span>
           </div>
-          <h2 className="text-2xl sm:text-3xl font-bold">
+          <h2 className="text-lg sm:text-3xl font-bold">
             Ils ont essayé, ils ont <span className="gradient-text">adoré</span>
           </h2>
         </motion.div>
@@ -728,7 +730,8 @@ export default function HomePage() {
       </div>
 
       {/* ══ GALERIE EXEMPLES ══════════════════════════════════════════════ */}
-      <section className="order-1 sm:order-3 py-12 sm:py-24 px-4 sm:px-6 relative overflow-hidden">
+      {/* Téléphone : pt-10 = 40 px exactement sous le bouton « Essayer gratuitement » */}
+      <section className="order-1 sm:order-3 pt-10 pb-6 sm:py-24 px-4 sm:px-6 relative overflow-hidden">
         {/* Fond teinté */}
         <div className="absolute inset-0 bg-surface/20 pointer-events-none" />
         {/* Orbe violet haut-gauche */}
@@ -754,13 +757,13 @@ export default function HomePage() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mb-12"
+            className="text-center mb-3 sm:mb-12"
           >
-            <h2 className="text-4xl sm:text-5xl font-bold mb-4">
+            <h2 className="text-2xl sm:text-5xl font-bold mb-2 sm:mb-4">
               Exemples de <span className="gradient-text">transformations</span>
             </h2>
-            <p className="text-white/50 text-lg max-w-xl mx-auto">
-              Passez la souris sur les photos pour voir la transformation. Regardez les vidéos pour voir en action - en cours d'amélioration.
+            <p className="text-white/50 text-xs sm:text-lg max-w-xl mx-auto">
+              Transformations en image et en vidéo, générées par IA.
             </p>
           </motion.div>
 
