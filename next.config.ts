@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Permet de lancer un 2e serveur de dev en parallèle (aperçu mobile sur :3001)
+  // en isolant son dossier de build : NEXT_DIST_DIR=.next-preview next dev -p 3001
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   turbopack: {
     root: __dirname,
   },
