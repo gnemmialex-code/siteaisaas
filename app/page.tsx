@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence, useInView } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
@@ -98,16 +98,20 @@ const FAQ_ITEMS = [
 const ROW1 = [
   "img35", "img36", "img37", "img38", "img39", "img40",
   "img47", "img48", "img49", "img50", "img51", "img52", "img53",
+  "img60", "img61", "img62", "img63", "img64",
 ].map(n => `/hero-gallery/${n}.png`);
 const ROW2 = [
   "img41", "img42", "img43", "img44", "img45", "img46",
   "img54", "img55", "img56", "img57", "img58", "img59",
+  "img65", "img66", "img67", "img68", "img69",
 ].map(n => `/hero-gallery/${n}.png`);
-// 3e ligne affichée UNIQUEMENT sur téléphone (mélange des mêmes images :
-// rien n'est perdu sur ordinateur, qui garde ses 2 lignes complètes).
+// 3e ligne affichée UNIQUEMENT sur téléphone. Elle met en avant les dernières
+// images ajoutées : img69 → img60 en tête de liste, donc ce sont elles qu'on
+// voit à l'ouverture du site. Les plus anciennes complètent la boucle.
 const ROW3 = [
-  "img59", "img53", "img47", "img41", "img35", "img56",
-  "img50", "img44", "img38", "img58", "img52", "img46",
+  "img69", "img68", "img67", "img66", "img65",
+  "img64", "img63", "img62", "img61", "img60",
+  "img53", "img47", "img41", "img35",
 ].map(n => `/hero-gallery/${n}.png`);
 
 function ImageRow({
@@ -121,7 +125,8 @@ function ImageRow({
   const doubled = [...images, ...images];
 
   return (
-    <div className="overflow-hidden w-full">
+    /* shrink-0 : sans ça le conteneur flex écrase les lignes et elles se chevauchent */
+    <div className="overflow-hidden w-full shrink-0">
       <div
         className={`flex w-max gap-1.5 sm:gap-3 ${
           direction === "left" ? "animate-scroll-left" : "animate-scroll-right"
@@ -130,8 +135,9 @@ function ImageRow({
         {doubled.map((src, i) => (
           <div
             key={i}
-            /* Tuiles réduites sur téléphone (3 lignes tiennent à l'écran), taille d'origine sur ordinateur */
-            className="flex-shrink-0 rounded-lg sm:rounded-xl overflow-hidden w-[124px] h-[207px] sm:w-[300px] sm:h-[500px]"
+            /* Tuiles réduites sur téléphone (les 3 lignes tiennent entièrement
+               dans le hero), taille d'origine sur ordinateur */
+            className="flex-shrink-0 rounded-lg sm:rounded-xl overflow-hidden w-[100px] h-[167px] sm:w-[300px] sm:h-[500px]"
           >
             <Image
               src={src}
@@ -166,7 +172,7 @@ function HeroImageBackground() {
       >
         <ImageRow images={ROW1} direction="left" />
         <ImageRow images={ROW2} direction="right" />
-        <div className="sm:hidden">
+        <div className="sm:hidden shrink-0">
           <ImageRow images={ROW3} direction="left" />
         </div>
       </div>
@@ -176,13 +182,121 @@ function HeroImageBackground() {
       <div className="absolute inset-0 bg-background/45" />
       {/* Fondu haut léger (navbar) */}
       <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-b from-background/70 to-transparent" />
-      {/* Dégradé noir — couvre la moitié basse de la 2e ligne */}
-      <div className="absolute bottom-0 left-0 right-0 h-[320px] bg-gradient-to-t from-background from-40% via-background/80 to-transparent" />
+      {/* Dégradé noir bas — plus court sur téléphone pour laisser respirer la 3e ligne */}
+      <div className="absolute bottom-0 left-0 right-0 h-[240px] sm:h-[320px] bg-gradient-to-t from-background from-40% via-background/80 to-transparent" />
       {/* Fondu gauche */}
       <div className="absolute top-0 bottom-0 left-0 w-24 bg-gradient-to-r from-background to-transparent" />
       {/* Fondu droite */}
       <div className="absolute top-0 bottom-0 right-0 w-24 bg-gradient-to-l from-background to-transparent" />
     </div>
+  );
+}
+
+/**
+ * Bouton « Essayer gratuitement » animé.
+ * Trois couches d'animation qui tournent en continu :
+ *   1. deux halos dégradés qui se croisent derrière (violet ↔ cyan) ;
+ *   2. un reflet lumineux qui balaie le bouton PAR-DESSUS le dégradé ;
+ *   3. un léger battement d'échelle.
+ */
+function AnimatedCta({
+  className = "",
+  fullWidth = false,
+}: {
+  className?: string;
+  fullWidth?: boolean;
+}) {
+  return (
+    <div className={`relative ${fullWidth ? "w-full" : "inline-block"}`}>
+      {/* Halo 1 — violet → cyan */}
+      <motion.div
+        aria-hidden
+        className="absolute -inset-1.5 rounded-xl blur-lg bg-gradient-to-r from-accent-violet to-accent-neon pointer-events-none"
+        animate={{ opacity: [0.35, 0.85, 0.35], scale: [1, 1.07, 1] }}
+        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+      />
+      {/* Halo 2 — cyan → violet, en opposition de phase : la couleur du halo glisse */}
+      <motion.div
+        aria-hidden
+        className="absolute -inset-1.5 rounded-xl blur-xl bg-gradient-to-r from-accent-neon to-accent-violet pointer-events-none"
+        animate={{ opacity: [0.75, 0.2, 0.75], scale: [1.06, 1, 1.06] }}
+        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+      />
+
+      <motion.div
+        className="relative"
+        animate={{ scale: [1, 1.035, 1] }}
+        transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+        whileTap={{ scale: 0.95 }}
+      >
+        <Link
+          href="/dashboard"
+          className={`btn-primary relative overflow-hidden flex items-center justify-center gap-2 group ${
+            fullWidth ? "w-full" : ""
+          } ${className}`}
+        >
+          {/* Reflet qui balaie le bouton, au-dessus du dégradé mais sous le texte */}
+          <motion.span
+            aria-hidden
+            className="absolute inset-y-0 -left-1/3 w-1/3 -skew-x-12 bg-white/40 blur-md pointer-events-none"
+            animate={{ x: ["0%", "500%"] }}
+            transition={{
+              duration: 1.6,
+              repeat: Infinity,
+              repeatDelay: 1.6,
+              ease: "easeInOut",
+            }}
+          />
+          <span className="relative">Essayer gratuitement</span>
+          <ArrowRight className="relative w-5 h-5 group-hover:translate-x-1 transition-transform" />
+        </Link>
+      </motion.div>
+    </div>
+  );
+}
+
+/**
+ * Bouton « Essayer gratuitement » collant — TÉLÉPHONE UNIQUEMENT.
+ * Tant que le bouton du hero est à l'écran, rien ne s'affiche. Dès que le
+ * visiteur le dépasse en scrollant, une barre se pose sous la navbar et
+ * suit l'écran pour le reste de la page.
+ */
+function MobileStickyCta({ anchorRef }: { anchorRef: React.RefObject<HTMLDivElement | null> }) {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const update = () => {
+      const el = anchorRef.current;
+      if (!el) return;
+      // NAVBAR_H = h-16 (64 px) : on affiche dès que le bouton passe dessous.
+      setVisible(el.getBoundingClientRect().bottom < 64);
+    };
+
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, [anchorRef]);
+
+  return (
+    <AnimatePresence>
+      {visible && (
+        <motion.div
+          initial={{ y: -70, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: -70, opacity: 0 }}
+          transition={{ duration: 0.25, ease: "easeOut" }}
+          /* Sans fond : le bouton flotte seul au-dessus de la page, posé un peu
+             plus bas que la navbar pour ne pas la toucher. */
+          className="sm:hidden fixed top-[88px] left-0 right-0 z-40 px-4"
+        >
+          <AnimatedCta fullWidth className="py-3 text-base" />
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
@@ -575,17 +689,24 @@ function FaqAccordion() {
 // ─── PAGE PRINCIPALE ────────────────────────────────────────────────────────
 
 export default function HomePage() {
+  // Repère du bouton « Essayer gratuitement » du hero : sert à déclencher
+  // la version collante sur téléphone une fois qu'on l'a dépassé.
+  const heroCtaRef = useRef<HTMLDivElement>(null);
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
+      <MobileStickyCta anchorRef={heroCtaRef} />
 
       {/* ══ HERO ══════════════════════════════════════════════════════════ */}
       {/* Téléphone : contenu ancré en bas (items-end) — le vide restant passe au-dessus,
           sur la galerie de fond, au lieu de séparer le bouton des exemples. */}
-      <section className="relative min-h-[52vh] sm:min-h-screen flex items-end sm:items-center justify-center overflow-hidden">
+      <section className="relative min-h-[62vh] sm:min-h-screen flex items-end sm:items-center justify-center overflow-hidden">
         <HeroImageBackground />
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-10 pb-0 sm:py-32 text-center">
+        {/* pb-8 sur téléphone : le hero est en overflow-hidden, sans cette marge
+            le halo animé sous le bouton se fait couper net par le bas du hero. */}
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-10 pb-8 sm:py-32 text-center">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -601,7 +722,7 @@ export default function HomePage() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-4xl sm:text-7xl lg:text-8xl font-black leading-tight mb-3 sm:mb-6"
+            className="text-[2rem] sm:text-7xl lg:text-8xl font-black leading-tight mb-3 sm:mb-6"
           >
             Fake It{" "}
             <span className="gradient-text">Until You</span>
@@ -620,24 +741,13 @@ export default function HomePage() {
           </motion.p>
 
           <motion.div
+            ref={heroCtaRef}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
             className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-0 sm:mb-16"
           >
-            <div className="relative">
-              <motion.div
-                className="absolute inset-0 rounded-xl bg-accent-violet/50 blur-lg pointer-events-none"
-                animate={{ scale: [1, 1.25, 1], opacity: [0.55, 0.15, 0.55] }}
-                transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
-              />
-              <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }} className="relative">
-                <Link href="/dashboard" className="btn-primary text-lg px-8 py-4 flex items-center gap-2 group">
-                  Essayer gratuitement
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </Link>
-              </motion.div>
-            </div>
+            <AnimatedCta className="text-lg px-8 py-4" />
           </motion.div>
 
           {/* Stats — entièrement masquées sur téléphone */}
@@ -730,8 +840,8 @@ export default function HomePage() {
       </div>
 
       {/* ══ GALERIE EXEMPLES ══════════════════════════════════════════════ */}
-      {/* Téléphone : pt-10 = 40 px exactement sous le bouton « Essayer gratuitement » */}
-      <section className="order-1 sm:order-3 pt-10 pb-6 sm:py-24 px-4 sm:px-6 relative overflow-hidden">
+      {/* Téléphone : pt-2 + le pb-8 du hero = toujours 40 px sous le bouton « Essayer gratuitement » */}
+      <section className="order-1 sm:order-3 pt-2 pb-6 sm:py-24 px-4 sm:px-6 relative overflow-hidden">
         {/* Fond teinté */}
         <div className="absolute inset-0 bg-surface/20 pointer-events-none" />
         {/* Orbe violet haut-gauche */}
