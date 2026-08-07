@@ -122,7 +122,7 @@ const FAQ_ITEMS = HOME_FAQ;
 const ROW1 = [
   "img35", "img36", "img37", "img38", "img39", "img40",
   "img47", "img48", "img49", "img50", "img51", "img52", "img53",
-  "img60", "img61", "img62", "img63", "img64",
+  "img60", "img61", "img62", "img63", "img64", "img70",
 ].map(n => `/hero-gallery/${n}.png`);
 const ROW2 = [
   "img41", "img42", "img43", "img44", "img45", "img46",
@@ -130,10 +130,10 @@ const ROW2 = [
   "img65", "img66", "img67", "img68", "img69",
 ].map(n => `/hero-gallery/${n}.png`);
 // 3e ligne affichée UNIQUEMENT sur téléphone. Elle met en avant les dernières
-// images ajoutées : img69 → img60 en tête de liste, donc ce sont elles qu'on
+// images ajoutées : img70 → img60 en tête de liste, donc ce sont elles qu'on
 // voit à l'ouverture du site. Les plus anciennes complètent la boucle.
 const ROW3 = [
-  "img69", "img68", "img67", "img66", "img65",
+  "img70", "img69", "img68", "img67", "img66", "img65",
   "img64", "img63", "img62", "img61", "img60",
   "img53", "img47", "img41", "img35",
 ].map(n => `/hero-gallery/${n}.png`);
