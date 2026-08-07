@@ -15,9 +15,11 @@ export default function Footer() {
                   navigation, ici pour un rendu de 32 à 44 px. Chargement
                   différé — le pied de page est toujours sous la ligne de
                   flottaison. */}
+              {/* alt vide : le nom « AstraCrea » suit immédiatement dans le
+                  même lien, le répéter n'apporte rien à un lecteur d'écran. */}
               <Image
                 src="/logo2.png"
-                alt="AstraCrea"
+                alt=""
                 width={44}
                 height={44}
                 loading="lazy"

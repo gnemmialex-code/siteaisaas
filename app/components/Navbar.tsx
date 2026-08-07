@@ -52,9 +52,12 @@ export default function Navbar() {
                 un rendu de 44 px. Il descend ici à quelques kilo-octets en AVIF.
                 width/height déclarés : la barre ne se réajuste plus au
                 chargement (CLS). */}
+            {/* alt vide : le mot « AstraCrea » est déjà écrit juste à côté,
+                dans le même lien. Un alt qui le répète fait annoncer la marque
+                deux fois de suite par un lecteur d'écran. */}
             <Image
               src="/logo2.png"
-              alt="AstraCrea"
+              alt=""
               width={44}
               height={44}
               priority
@@ -102,8 +105,12 @@ export default function Navbar() {
           </div>
 
           {/* Mobile toggle */}
+          {/* Le bouton ne contient qu'une icône : sans aria-label, un lecteur
+              d'écran l'annonce comme « bouton », sans dire ce qu'il fait. */}
           <button
             className="md:hidden btn-ghost p-2"
+            aria-label={mobileOpen ? "Fermer le menu" : "Ouvrir le menu"}
+            aria-expanded={mobileOpen}
             onClick={() => setMobileOpen(!mobileOpen)}
           >
             {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
