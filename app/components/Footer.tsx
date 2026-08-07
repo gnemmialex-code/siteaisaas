@@ -41,6 +41,10 @@ export default function Footer() {
                 { href: "/upload", label: "Générer" },
                 { href: "/pricing", label: "Tarifs" },
                 { href: "/dashboard", label: "Dashboard" },
+                // Lien interne visible depuis la page d'accueil vers la surface
+                // de contenu. Ajouté dans la colonne existante plutôt qu'en
+                // créant une quatrième colonne, qui casserait la grille.
+                { href: "/blog", label: "Blog" },
               ].map((l) => (
                 <li key={l.href}>
                   <Link href={l.href} className="text-white/50 hover:text-white text-xs sm:text-sm transition-colors">

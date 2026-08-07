@@ -2,6 +2,8 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import type { MetadataRoute } from "next";
+import { getPublishedPosts } from "@/lib/blog";
+import { getPublishedLandingPages, landingPath } from "@/lib/landing";
 import { isPrivateRoute, sitemapSettings } from "@/lib/routes";
 import { SITE_URL } from "@/lib/seo";
 
@@ -52,8 +54,9 @@ function lastModified(file: string): Date {
   return new Date();
 }
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  return collectRoutes()
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  // 1. Routes statiques réellement présentes dans app/
+  const staticRoutes: MetadataRoute.Sitemap = collectRoutes()
     .filter(({ route }) => !isPrivateRoute(route))
     .sort((a, b) => a.route.localeCompare(b.route))
     .map(({ route, file }) => {
@@ -65,4 +68,24 @@ export default function sitemap(): MetadataRoute.Sitemap {
         priority,
       };
     });
+
+  // 2. Articles publiés. collectRoutes() ignore les segments dynamiques, les
+  //    URL d'articles sont donc ajoutées ici. Les brouillons sont exclus par
+  //    getPublishedPosts().
+  const posts: MetadataRoute.Sitemap = (await getPublishedPosts()).map((post) => ({
+    url: new URL(`/blog/${post.slug}`, SITE_URL).toString(),
+    lastModified: new Date(`${post.updatedAt ?? post.publishedAt}T12:00:00Z`),
+    changeFrequency: "yearly",
+    priority: 0.6,
+  }));
+
+  // 3. Pages d'atterrissage dont le contenu a été écrit et validé.
+  const landings: MetadataRoute.Sitemap = getPublishedLandingPages().map((page) => ({
+    url: new URL(landingPath(page), SITE_URL).toString(),
+    lastModified: new Date(),
+    changeFrequency: "monthly",
+    priority: 0.8,
+  }));
+
+  return [...staticRoutes, ...posts, ...landings];
 }

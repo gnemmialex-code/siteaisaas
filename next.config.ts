@@ -1,3 +1,4 @@
+import createMDX from "@next/mdx";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
@@ -41,4 +42,12 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+/**
+ * Les articles sont des fichiers .mdx dans content/blog/, importés comme des
+ * composants — ils ne sont pas des routes en eux-mêmes. `pageExtensions` n'est
+ * donc volontairement pas modifié : un .mdx posé dans app/ ne créera pas de
+ * page par accident.
+ */
+const withMDX = createMDX({});
+
+export default withMDX(nextConfig);

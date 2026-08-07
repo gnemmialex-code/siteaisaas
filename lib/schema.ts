@@ -149,27 +149,79 @@ export function faqPageSchema(items: FaqItem[], path: string): Record<string, un
 }
 
 /**
+ * Article de blog.
+ *
+ * Pas de `wordCount` ni de `timeRequired` : ces valeurs ne seraient pas
+ * dérivées du texte réel et n'auraient donc aucune garantie d'exactitude.
+ */
+export function articleSchema(post: {
+  slug: string;
+  title: string;
+  description: string;
+  publishedAt: string;
+  updatedAt?: string;
+  author?: string;
+  image?: string;
+}): Record<string, unknown> {
+  const url = abs(`/blog/${post.slug}`);
+
+  return {
+    "@type": "BlogPosting",
+    "@id": `${url}#article`,
+    headline: post.title,
+    description: post.description,
+    url,
+    mainEntityOfPage: { "@type": "WebPage", "@id": url },
+    datePublished: post.publishedAt,
+    dateModified: post.updatedAt ?? post.publishedAt,
+    inLanguage: "fr-FR",
+    author: post.author
+      ? { "@type": "Person", name: post.author }
+      : { "@id": ORGANIZATION_ID },
+    publisher: { "@id": ORGANIZATION_ID },
+    ...(post.image ? { image: abs(post.image) } : {}),
+  };
+}
+
+/** Page de liste du blog. */
+export function blogSchema(posts: { slug: string; title: string }[]): Record<string, unknown> {
+  return {
+    "@type": "Blog",
+    "@id": `${abs("/blog")}#blog`,
+    url: abs("/blog"),
+    name: `Le blog ${SITE_NAME}`,
+    inLanguage: "fr-FR",
+    publisher: { "@id": ORGANIZATION_ID },
+    blogPost: posts.map((p) => ({
+      "@type": "BlogPosting",
+      "@id": `${abs(`/blog/${p.slug}`)}#article`,
+      headline: p.title,
+      url: abs(`/blog/${p.slug}`),
+    })),
+  };
+}
+
+/**
  * Fil d'Ariane des pages internes. `Accueil` est toujours le premier maillon.
  * Il n'y a pas de fil d'Ariane visible sur le site : ce balisage décrit la
  * position réelle de la page dans l'arborescence, ce que Google accepte.
  */
-export function breadcrumbSchema(page: { name: string; path: string }): Record<string, unknown> {
+export function breadcrumbSchema(
+  ...trail: { name: string; path: string }[]
+): Record<string, unknown> {
+  const last = trail[trail.length - 1];
+
   return {
     "@type": "BreadcrumbList",
-    "@id": `${abs(page.path)}#breadcrumb`,
+    "@id": `${abs(last.path)}#breadcrumb`,
     itemListElement: [
-      {
+      { "@type": "ListItem", position: 1, name: "Accueil", item: SITE_URL },
+      ...trail.map((step, i) => ({
         "@type": "ListItem",
-        position: 1,
-        name: "Accueil",
-        item: SITE_URL,
-      },
-      {
-        "@type": "ListItem",
-        position: 2,
-        name: page.name,
-        item: abs(page.path),
-      },
+        position: i + 2,
+        name: step.name,
+        item: abs(step.path),
+      })),
     ],
   };
 }

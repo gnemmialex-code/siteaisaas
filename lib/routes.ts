@@ -38,6 +38,7 @@ const SITEMAP_SETTINGS: Record<
 > = {
   "/": { changeFrequency: "weekly", priority: 1 },
   "/pricing": { changeFrequency: "monthly", priority: 0.9 },
+  "/blog": { changeFrequency: "weekly", priority: 0.8 },
   "/register": { changeFrequency: "monthly", priority: 0.7 },
   "/contact": { changeFrequency: "yearly", priority: 0.5 },
   "/terms": { changeFrequency: "yearly", priority: 0.3 },
