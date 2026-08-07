@@ -1,12 +1,16 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Shield } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata = {
+export const metadata: Metadata = pageMetadata({
+  path: "/privacy",
   title: "Politique de Confidentialité — AstraCrea",
-  description: "Politique de confidentialité et protection des données personnelles — AstraCrea.",
-};
+  description:
+    "Politique de confidentialité d'AstraCrea : données collectées, durée de conservation des photos, sous-traitants et exercice de vos droits RGPD.",
+});
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (

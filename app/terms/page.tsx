@@ -1,12 +1,16 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Sparkles } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata = {
+export const metadata: Metadata = pageMetadata({
+  path: "/terms",
   title: "Conditions Générales d'Utilisation — AstraCrea",
-  description: "Conditions Générales d'Utilisation du service AstraCrea.",
-};
+  description:
+    "Conditions Générales d'Utilisation du service AstraCrea : accès au service, abonnements, propriété des créations et responsabilités.",
+});
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -33,7 +37,7 @@ export default function TermsPage() {
             Conditions Générales d&apos;Utilisation
           </h1>
           <p className="text-white/40 text-sm">
-            Dernière mise à jour : 25 mai 2025 — Version 1.0
+            Dernière mise à jour : 07/08/2026 — Version 4.8
           </p>
         </div>
 

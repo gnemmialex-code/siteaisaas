@@ -7,6 +7,8 @@ import { Check, Zap, Loader2, Sparkles, Crown, Infinity as InfinityIcon, ShieldC
 import toast from "react-hot-toast";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import { PRICING_FAQ } from "@/lib/faq";
+import { PLAN_PRICES } from "@/lib/plans";
 
 const PLANS = [
   {
@@ -15,8 +17,10 @@ const PLANS = [
     icon: <Zap className="w-5 h-5" />,
     credits: "2 500",
     creditsRaw: 2500,
-    priceMonthly: 4.98,
-    priceYearly: 49.80,
+    // Prix lus depuis lib/plans.ts, qui alimente aussi les `offers` du JSON-LD :
+    // le prix balisé ne peut pas diverger du prix affiché.
+    priceMonthly: PLAN_PRICES.plan_essentiel.monthly,
+    priceYearly: PLAN_PRICES.plan_essentiel.yearly,
     color: "border-surface-border",
     badge: null,
     tagline: "Pour découvrir l'IA",
@@ -43,7 +47,7 @@ const PLANS = [
     credits: "10 250",
     creditsRaw: 10250,
     bonusCredits: 1000,
-    priceMonthly: 19.90,
+    priceMonthly: PLAN_PRICES.plan_pro.monthly,
     color: "border-surface-border",
     badge: "Populaire",
     tagline: "Pour créer plus & mieux",
@@ -71,7 +75,7 @@ const PLANS = [
     icon: <Crown className="w-5 h-5" />,
     credits: "Illimité",
     creditsRaw: null,
-    priceMonthly: 39.90,
+    priceMonthly: PLAN_PRICES.plan_ultra.monthly,
     color: "border-accent-neon/50",
     badge: "Meilleure valeur",
     tagline: "L'expérience sans compromis",
@@ -95,32 +99,9 @@ const PLANS = [
   },
 ];
 
-const FAQ = [
-  {
-    q: "Y a-t-il une limite de générations ?",
-    a: "Non. Tous les abonnements incluent des générations illimitées. Vous transformez autant de photos que vous le souhaitez, dans les limites de votre formule (la vidéo IA est réservée aux plans Pro et Elite).",
-  },
-  {
-    q: "Que se passe-t-il sans abonnement ?",
-    a: "Vous pouvez tester gratuitement : vous obtenez un aperçu flouté de votre transformation. Un abonnement actif débloque le rendu net en haute définition, téléchargeable.",
-  },
-  {
-    q: "Puis-je changer de plan à tout moment ?",
-    a: "Oui, vous pouvez upgrader ou downgrader votre plan à n'importe quel moment. Le changement prend effet immédiatement.",
-  },
-  {
-    q: "Combien de temps dure une génération ?",
-    a: "En moyenne 20 à 40 secondes selon la complexité du style. Les plans Pro et Ultra bénéficient d'une file d'attente prioritaire.",
-  },
-  {
-    q: "Puis-je utiliser les images commercialement ?",
-    a: "Les images sont pour usage personnel et créatif uniquement. L'usage commercial nécessite une licence spéciale — contactez-nous.",
-  },
-  {
-    q: "Comment fonctionne le remboursement ?",
-    a: "Nous offrons un remboursement intégral sous 48h si vous n'êtes pas satisfait de vos premières générations.",
-  },
-];
+// Le texte de la FAQ vit dans lib/faq.ts : il alimente à la fois cet affichage
+// et le balisage FAQPage de app/pricing/layout.tsx.
+const FAQ = PRICING_FAQ;
 
 function formatPrice(price: number) {
   return price.toFixed(2).replace(".", ",") + "€";
@@ -295,6 +276,10 @@ export default function PricingPage() {
         </motion.div>
 
         {/* Plans */}
+        {/* Titre de niveau 2 réservé aux lecteurs d'écran et aux crawlers : la
+            grille de formules n'a pas de titre visible, et sans lui les noms de
+            plans (h3) sauteraient directement du h1 au h3. */}
+        <h2 className="sr-only">Nos formules d&apos;abonnement</h2>
         <div className="plans-grid grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-6 mb-16">
           {PLANS.map((plan, i) => {
             const monthlyPrice = plan.priceMonthly;
@@ -494,7 +479,8 @@ export default function PricingPage() {
           viewport={{ once: true }}
           className="card border-accent-neon/20 bg-accent-neon/5 text-center mb-16"
         >
-          <h3 className="text-2xl font-bold mb-2">Essayez gratuitement</h3>
+          {/* Bloc de niveau section, au même rang que « Questions fréquentes » */}
+          <h2 className="text-2xl font-bold mb-2">Essayez gratuitement</h2>
           <p className="text-white/50 mb-4">
             Créez un compte gratuit et générez un aperçu de votre transformation. Débloquez le rendu net en HD avec un abonnement. Aucune carte bancaire requise pour tester.
           </p>
@@ -519,7 +505,7 @@ export default function PricingPage() {
                 transition={{ delay: i * 0.05 }}
                 className="card"
               >
-                <h4 className="font-semibold mb-2">{item.q}</h4>
+                <h3 className="font-semibold mb-2">{item.q}</h3>
                 <p className="text-white/50 text-sm leading-relaxed">{item.a}</p>
               </motion.div>
             ))}

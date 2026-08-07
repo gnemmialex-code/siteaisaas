@@ -1,0 +1,56 @@
+export const meta = {
+  title: "Exemple de structure d'article",
+  description:
+    "Fichier de démonstration du gabarit d'article : il montre comment déclarer les métadonnées et quels éléments Markdown sont stylés. À supprimer ou remplacer.",
+  publishedAt: "2026-08-07",
+  author: "AstraCrea",
+  tags: ["interne"],
+  draft: true,
+};
+
+Ce fichier n'est **pas** un article destiné à être publié. Il sert de gabarit :
+il vérifie que la chaîne MDX fonctionne de bout en bout et montre le rendu de
+chaque élément Markdown. Supprimez-le, ou remplacez son contenu par un vrai
+article et passez `draft` à `false`.
+
+## Comment ça marche
+
+Un article = un fichier dans `content/blog/`. Le nom du fichier devient l'URL :
+ce fichier-ci répond sur `/blog/exemple-structure-article`.
+
+L'export `meta` en haut du fichier pilote tout le reste :
+
+- `title` et `description` alimentent la balise title, la meta description,
+  l'Open Graph et le JSON-LD ;
+- `publishedAt` et `updatedAt` alimentent `datePublished` / `dateModified` ;
+- `draft: true` garde l'article hors de la liste, hors du sitemap, et en
+  `noindex`. C'est la valeur par défaut si le champ est absent.
+
+Rien d'autre n'est à enregistrer ailleurs : la liste, le sitemap et les données
+structurées se mettent à jour tout seuls.
+
+## Le titre h1 n'est pas dans ce fichier
+
+Le `h1` de la page est rendu par le gabarit à partir de `meta.title`. N'en
+écrivez pas un ici avec `#` : la page en aurait deux. Commencez la hiérarchie
+à `##`, comme ci-dessus.
+
+### Un sous-titre de niveau 3
+
+Les niveaux `h2` et `h3` sont stylés. Au-delà, mieux vaut découper l'article.
+
+## Ce qui est stylé
+
+Le texte courant, les listes ordonnées et non ordonnées, le `code en ligne`,
+les blocs de code, les tableaux, les citations et les liens — [internes](/pricing)
+comme externes.
+
+> Une citation, pour mettre en avant un passage.
+
+| Élément | Rendu |
+| --- | --- |
+| Tableau | Défilement horizontal si nécessaire |
+| Image | Dimensions déclarées, pas de décalage |
+
+Les images passent par `next/image` : elles sont converties en AVIF et leurs
+dimensions sont réservées avant chargement.

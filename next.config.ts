@@ -1,3 +1,4 @@
+import createMDX from "@next/mdx";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
@@ -14,6 +15,10 @@ const nextConfig: NextConfig = {
   },
   images: {
     formats: ["image/avif", "image/webp"],
+    // Next 16 n'autorise que les qualités déclarées ici ; toute autre valeur
+    // passée à <Image quality> est ignorée et retombe silencieusement sur 75.
+    // 55 sert aux tuiles décoratives du fond du hero, masquées par des voiles.
+    qualities: [55, 75],
     remotePatterns: [
       {
         protocol: "https",
@@ -37,4 +42,12 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+/**
+ * Les articles sont des fichiers .mdx dans content/blog/, importés comme des
+ * composants — ils ne sont pas des routes en eux-mêmes. `pageExtensions` n'est
+ * donc volontairement pas modifié : un .mdx posé dans app/ ne créera pas de
+ * page par accident.
+ */
+const withMDX = createMDX({});
+
+export default withMDX(nextConfig);

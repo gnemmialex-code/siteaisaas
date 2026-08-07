@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
 
@@ -10,8 +11,20 @@ export default function Footer() {
           {/* Brand */}
           <div className="col-span-2">
             <Link href="/" className="inline-flex items-center gap-2 mb-2 sm:mb-4">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo2.png" alt="AstraCrea" className="h-8 sm:h-11 w-auto rounded-lg sm:rounded-xl" />
+              {/* next/image : même fichier de 206 Ko que dans la barre de
+                  navigation, ici pour un rendu de 32 à 44 px. Chargement
+                  différé — le pied de page est toujours sous la ligne de
+                  flottaison. */}
+              {/* alt vide : le nom « AstraCrea » suit immédiatement dans le
+                  même lien, le répéter n'apporte rien à un lecteur d'écran. */}
+              <Image
+                src="/logo2.png"
+                alt=""
+                width={44}
+                height={44}
+                loading="lazy"
+                className="h-8 sm:h-11 w-auto rounded-lg sm:rounded-xl"
+              />
               <span className="font-black text-base sm:text-lg tracking-tight">Astra<span className="gradient-text">Crea</span></span>
             </Link>
             <p className="text-white/50 text-[11px] sm:text-sm leading-relaxed max-w-xs">
@@ -22,12 +35,18 @@ export default function Footer() {
 
           {/* Links */}
           <div>
-            <h4 className="font-semibold text-sm sm:text-base mb-2 sm:mb-4 text-white/80">Produit</h4>
+            {/* h3 et non h4 : le dernier niveau utilisé au-dessus dans les pages
+                est h2, un h4 créerait un saut de niveau. Style inchangé. */}
+            <h3 className="font-semibold text-sm sm:text-base mb-2 sm:mb-4 text-white/80">Produit</h3>
             <ul className="space-y-1.5 sm:space-y-2">
               {[
                 { href: "/upload", label: "Générer" },
                 { href: "/pricing", label: "Tarifs" },
                 { href: "/dashboard", label: "Dashboard" },
+                // Lien interne visible depuis la page d'accueil vers la surface
+                // de contenu. Ajouté dans la colonne existante plutôt qu'en
+                // créant une quatrième colonne, qui casserait la grille.
+                { href: "/blog", label: "Blog" },
               ].map((l) => (
                 <li key={l.href}>
                   <Link href={l.href} className="text-white/50 hover:text-white text-xs sm:text-sm transition-colors">
@@ -39,7 +58,7 @@ export default function Footer() {
           </div>
 
           <div>
-            <h4 className="font-semibold text-sm sm:text-base mb-2 sm:mb-4 text-white/80">Légal</h4>
+            <h3 className="font-semibold text-sm sm:text-base mb-2 sm:mb-4 text-white/80">Légal</h3>
             <ul className="space-y-1.5 sm:space-y-2">
               {[
                 { href: "/terms", label: "CGU" },
