@@ -37,7 +37,7 @@ export default function TermsPage() {
             Conditions Générales d&apos;Utilisation
           </h1>
           <p className="text-white/40 text-sm">
-            Dernière mise à jour : 25 mai 2025 — Version 1.0
+            Dernière mise à jour : 07/08/2026 — Version 4.8
           </p>
         </div>
 
