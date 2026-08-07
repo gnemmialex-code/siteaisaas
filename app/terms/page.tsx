@@ -1,12 +1,16 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Sparkles } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata = {
+export const metadata: Metadata = pageMetadata({
+  path: "/terms",
   title: "Conditions Générales d'Utilisation — AstraCrea",
-  description: "Conditions Générales d'Utilisation du service AstraCrea.",
-};
+  description:
+    "Conditions Générales d'Utilisation du service AstraCrea : accès au service, abonnements, propriété des créations et responsabilités.",
+});
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (

@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import { Toaster } from "react-hot-toast";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { HOME_DESCRIPTION, HOME_TITLE, SITE_NAME, SITE_URL } from "@/lib/seo";
 import "./globals.css";
 
 const inter = Inter({
@@ -18,15 +19,29 @@ const jetbrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
+/**
+ * Metadata de repli, héritée par toute route qui n'exporte pas la sienne.
+ * Volontairement sans `alternates.canonical` : un canonical défini ici serait
+ * hérité par les pages qui n'en déclarent pas et les ferait toutes pointer vers
+ * la même URL. Chaque page publique appelle pageMetadata() (lib/seo.ts).
+ */
 export const metadata: Metadata = {
-  title: "AstraCrea — Transformations IA Ultra HD",
-  description:
-    "Transformez vos photos avec la technologie IA Ultra HD d'AstraCrea. Résultats 4K en quelques secondes.",
-  keywords: ["AstraCrea", "IA", "photo", "transformation", "ultra hd", "face swap"],
+  metadataBase: new URL(SITE_URL),
+  title: HOME_TITLE,
+  description: HOME_DESCRIPTION,
+  applicationName: SITE_NAME,
   openGraph: {
-    title: "AstraCrea — Transformations IA Ultra HD",
-    description: "Transformez vos photos avec l'IA Ultra HD d'AstraCrea",
     type: "website",
+    locale: "fr_FR",
+    siteName: SITE_NAME,
+    url: SITE_URL,
+    title: HOME_TITLE,
+    description: HOME_DESCRIPTION,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: HOME_TITLE,
+    description: HOME_DESCRIPTION,
   },
 };
 
