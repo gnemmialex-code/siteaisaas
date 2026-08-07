@@ -1,0 +1,26 @@
+# AstraCrea
+
+> AstraCrea est un service en ligne français d'essayage virtuel de montres de luxe par intelligence artificielle.
+> L'utilisateur envoie une photo de son poignet ; l'IA y ajoute le modèle choisi (Rolex, Hublot, Tudor…) et renvoie
+> un rendu photoréaliste upscalé x4 via RealESRGAN, jusqu'à 4K, en moins de 30 secondes en moyenne.
+> Le service fonctionne par abonnement mensuel, dans le navigateur, sans installation ; la photo d'origine est
+> supprimée des serveurs après traitement.
+
+## Pages principales
+
+- [Accueil](https://www.astracrea.co/) : présentation du service, exemples avant/après par modèle de montre, vidéo de démonstration et foire aux questions sur la confidentialité, les photos acceptées et la résolution finale.
+- [Tarifs](https://www.astracrea.co/pricing) : les trois formules d'abonnement mensuel — Essentiel à 4,98 €, Pro à 19,90 €, Elite à 39,90 € — avec pour chacune la qualité de rendu, la vitesse, l'accès à la vidéo IA et les conditions de remboursement.
+- [Contact](https://www.astracrea.co/contact) : formulaire pour joindre l'équipe sur le support, un partenariat ou un retour d'expérience.
+- [Créer un compte](https://www.astracrea.co/register) : inscription gratuite, sans carte bancaire, permettant de générer un aperçu avant tout abonnement.
+
+## Cadre légal et données
+
+- [Conditions Générales d'Utilisation](https://www.astracrea.co/terms) : règles d'accès au service, fonctionnement des abonnements, propriété des créations et limites de responsabilité.
+- [Politique de Confidentialité](https://www.astracrea.co/privacy) : données collectées, durée de conservation des photos envoyées, sous-traitants et exercice des droits RGPD.
+- [Politique de Consentement](https://www.astracrea.co/consent) : traitement des données biométriques liées aux photos de visage et consentement explicite demandé à l'utilisateur.
+
+## À savoir
+
+- Les images générées sont destinées à un usage personnel et récréatif. L'usage commercial nécessite une licence, incluse uniquement dans la formule Elite.
+- AstraCrea n'est affilié à aucune des marques horlogères citées ; leurs noms servent à désigner le modèle reproduit dans le rendu.
+- Le site est en français et le service est proposé principalement au public francophone.

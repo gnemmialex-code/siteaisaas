@@ -138,14 +138,54 @@ const ROW3 = [
   "img53", "img47", "img41", "img35",
 ].map(n => `/hero-gallery/${n}.png`);
 
+/**
+ * Taille réellement occupée par une tuile : 100 px de large sur téléphone,
+ * 300 px au-delà. Sans cet attribut, next/image se rabat sur `100vw` et sert
+ * jusqu'à w=3840 pour une vignette de 100 px — c'était le principal poste de
+ * poids de la page.
+ */
+const TILE_SIZES = "(max-width: 640px) 100px, 300px";
+
+/**
+ * Vrai une fois la page entièrement chargée.
+ *
+ * Sert à monter les vidéos décoratives seulement après coup. Une balise
+ * <video autoPlay> télécharge son fichier immédiatement et à priorité haute :
+ * la vidéo d'exemple (1,6 Mo) partait en même temps que l'image LCP de la
+ * page sur téléphone et lui prenait toute la bande passante.
+ */
+function useAfterLoad() {
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (document.readyState === "complete") {
+      setLoaded(true);
+      return;
+    }
+    const onLoad = () => setLoaded(true);
+    window.addEventListener("load", onLoad);
+    return () => window.removeEventListener("load", onLoad);
+  }, []);
+
+  return loaded;
+}
+
 function ImageRow({
   images,
   direction,
+  /** Précharge la première tuile : uniquement pour les lignes visibles d'emblée. */
+  preloadFirst = false,
 }: {
   images: string[];
   direction: "left" | "right";
+  preloadFirst?: boolean;
 }) {
-  // Dupliquer les images pour boucle seamless
+  // La boucle sans raccord impose que la piste contienne la liste deux fois :
+  // l'animation translate de -50 %, et c'est la seconde moitié qui prend le
+  // relais quand la première sort de l'écran. Aucune technique CSS ne permet
+  // de cloner du contenu peint — la copie doit exister dans le DOM. Elle ne
+  // coûte en revanche aucun octet : les mêmes fichiers sont déjà en cache, et
+  // toutes les tuiles sauf la première sont en chargement différé.
   const doubled = [...images, ...images];
 
   return (
@@ -168,8 +208,17 @@ function ImageRow({
               alt=""
               width={300}
               height={500}
-              priority={i < 3}
-              loading={i < 5 ? "eager" : "lazy"}
+              sizes={TILE_SIZES}
+              /* Une seule tuile préchargée par ligne visible. Il y en avait
+                 neuf : autant de préchargements concurrents qui retardaient
+                 le LCP au lieu de l'accélérer. Les tuiles suivantes sont en
+                 `lazy` — celles déjà à l'écran sont chargées immédiatement
+                 par le navigateur, simplement à priorité normale. */
+              priority={preloadFirst && i === 0}
+              loading={preloadFirst && i === 0 ? undefined : "lazy"}
+              /* Fond décoratif recouvert de plusieurs voiles sombres : la
+                 compression maximale n'y est pas perceptible. */
+              quality={55}
               className="w-full h-full object-cover"
               onError={(e) => {
                 // Cache la cellule si l'image n'existe pas encore
@@ -198,8 +247,12 @@ function HeroImageBackground() {
         className="absolute inset-0 flex flex-col justify-start gap-1.5 sm:gap-4"
         style={{ opacity: 0.7 }}
       >
-        <ImageRow images={ROW1} direction="left" />
-        <ImageRow images={ROW2} direction="right" />
+        <ImageRow images={ROW1} direction="left" preloadFirst />
+        <ImageRow images={ROW2} direction="right" preloadFirst />
+        {/* 3e ligne : téléphone uniquement. `display:none` sur ordinateur, où
+            le navigateur ne télécharge donc aucune de ses images différées.
+            Pas de préchargement ici : la ligne n'existe pas sur desktop, et un
+            `priority` conditionnel au média n'est pas exprimable en HTML. */}
         <div className="sm:hidden shrink-0">
           <ImageRow images={ROW3} direction="left" />
         </div>
@@ -384,6 +437,9 @@ function ReviewsMarquee() {
 
 function ExamplesGallery() {
   const [tab, setTab] = useState<"images" | "videos">("images");
+  // La vidéo d'exemple n'est montée qu'après le chargement de la page : sinon
+  // ses 1,6 Mo partent en concurrence directe avec l'image LCP, juste à côté.
+  const videoReady = useAfterLoad();
   // Téléphone : les autres exemples sont repliés derrière un bouton « Voir plus »
   const [showAll, setShowAll] = useState(false);
   const extraExamples = EXAMPLES_IMAGES.filter(e => e.style !== MOBILE_EXAMPLE.style);
@@ -403,6 +459,11 @@ function ExamplesGallery() {
             alt={MOBILE_EXAMPLE.style}
             altBefore={MOBILE_EXAMPLE.altBefore}
             altAfter={MOBILE_EXAMPLE.altAfter}
+            /* Élément LCP de la home sur téléphone : le hero ne fait que
+               62vh, ce comparateur est donc visible sans défiler. Les mêmes
+               fichiers alimentent la grille desktop, le préchargement n'y est
+               pas perdu non plus. */
+            priority
           />
           <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/70 to-transparent pointer-events-none">
             <p className="text-white text-xs font-medium">{MOBILE_EXAMPLE.style}</p>
@@ -412,15 +473,21 @@ function ExamplesGallery() {
           className="relative rounded-2xl overflow-hidden border border-surface-border bg-surface-hover"
           style={{ aspectRatio: "9/16" }}
         >
-          <video
-            src={EXAMPLES_VIDEOS[0].localSrc}
-            aria-label="Vidéo : génération par IA d'une Hublot au poignet, de la photo d'origine au rendu final"
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="w-full h-full object-cover pointer-events-none"
-          />
+          {/* Le conteneur porte déjà `bg-surface-hover` : tant que la vidéo
+              n'est pas montée, la tuile reste à sa place, à la bonne taille.
+              Aucun décalage de mise en page, aucun trou blanc. */}
+          {videoReady && (
+            <video
+              src={EXAMPLES_VIDEOS[0].localSrc}
+              aria-label="Vidéo : génération par IA d'une Hublot au poignet, de la photo d'origine au rendu final"
+              autoPlay
+              loop
+              muted
+              playsInline
+              preload="metadata"
+              className="w-full h-full object-cover pointer-events-none"
+            />
+          )}
           <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/70 to-transparent pointer-events-none">
             <p className="text-white text-xs font-medium">{EXAMPLES_VIDEOS[0].title}</p>
           </div>

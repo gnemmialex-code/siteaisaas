@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -46,8 +47,19 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo2.png" alt="AstraCrea" className="h-11 w-auto rounded-xl" />
+            {/* next/image et non <img> brut : le fichier source fait 2000×2000
+                pour 206 Ko, et il était servi tel quel — puis préchargé — pour
+                un rendu de 44 px. Il descend ici à quelques kilo-octets en AVIF.
+                width/height déclarés : la barre ne se réajuste plus au
+                chargement (CLS). */}
+            <Image
+              src="/logo2.png"
+              alt="AstraCrea"
+              width={44}
+              height={44}
+              priority
+              className="h-11 w-auto rounded-xl"
+            />
             <span className="font-black text-lg tracking-tight">Astra<span className="gradient-text">Crea</span></span>
           </Link>
 

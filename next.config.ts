@@ -14,6 +14,10 @@ const nextConfig: NextConfig = {
   },
   images: {
     formats: ["image/avif", "image/webp"],
+    // Next 16 n'autorise que les qualités déclarées ici ; toute autre valeur
+    // passée à <Image quality> est ignorée et retombe silencieusement sur 75.
+    // 55 sert aux tuiles décoratives du fond du hero, masquées par des voiles.
+    qualities: [55, 75],
     remotePatterns: [
       {
         protocol: "https",

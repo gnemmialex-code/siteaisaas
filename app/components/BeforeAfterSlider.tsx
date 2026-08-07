@@ -20,6 +20,13 @@ interface Props {
   altAfter?:  string;
   /** Balayage automatique de la barre. Désactivé dès que l'utilisateur la saisit. */
   autoPlay?: boolean;
+  /**
+   * Précharge les deux moitiés. À réserver au comparateur visible sans
+   * défilement : sur téléphone, c'est lui l'élément LCP de la page d'accueil,
+   * et le laisser en chargement différé retardait le rendu de plusieurs
+   * secondes.
+   */
+  priority?: boolean;
 }
 
 export default function BeforeAfterSlider({
@@ -29,6 +36,7 @@ export default function BeforeAfterSlider({
   altBefore,
   altAfter,
   autoPlay = true,
+  priority = false,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const beforeRef    = useRef<HTMLDivElement>(null);
@@ -104,7 +112,7 @@ export default function BeforeAfterSlider({
   return (
     <div ref={containerRef} className="relative w-full h-full select-none overflow-hidden">
       {/* Après (image complète) */}
-      <Image src={after} alt={altAfter ?? `${alt} après`} fill sizes={IMG_SIZES} className="object-cover" draggable={false} />
+      <Image src={after} alt={altAfter ?? `${alt} après`} fill sizes={IMG_SIZES} priority={priority} className="object-cover" draggable={false} />
 
       {/* Avant (rognée à gauche de la barre) */}
       <div
@@ -112,7 +120,7 @@ export default function BeforeAfterSlider({
         className="absolute inset-0"
         style={{ clipPath: `inset(0 ${100 - START_POS}% 0 0)` }}
       >
-        <Image src={before} alt={altBefore ?? `${alt} avant`} fill sizes={IMG_SIZES} className="object-cover" draggable={false} />
+        <Image src={before} alt={altBefore ?? `${alt} avant`} fill sizes={IMG_SIZES} priority={priority} className="object-cover" draggable={false} />
       </div>
 
       {/* Barre de séparation */}

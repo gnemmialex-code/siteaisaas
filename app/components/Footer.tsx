@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
 
@@ -10,8 +11,18 @@ export default function Footer() {
           {/* Brand */}
           <div className="col-span-2">
             <Link href="/" className="inline-flex items-center gap-2 mb-2 sm:mb-4">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo2.png" alt="AstraCrea" className="h-8 sm:h-11 w-auto rounded-lg sm:rounded-xl" />
+              {/* next/image : même fichier de 206 Ko que dans la barre de
+                  navigation, ici pour un rendu de 32 à 44 px. Chargement
+                  différé — le pied de page est toujours sous la ligne de
+                  flottaison. */}
+              <Image
+                src="/logo2.png"
+                alt="AstraCrea"
+                width={44}
+                height={44}
+                loading="lazy"
+                className="h-8 sm:h-11 w-auto rounded-lg sm:rounded-xl"
+              />
               <span className="font-black text-base sm:text-lg tracking-tight">Astra<span className="gradient-text">Crea</span></span>
             </Link>
             <p className="text-white/50 text-[11px] sm:text-sm leading-relaxed max-w-xs">
