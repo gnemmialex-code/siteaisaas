@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import JsonLd from "../components/JsonLd";
+import { breadcrumbSchema } from "@/lib/schema";
 import { pageMetadata } from "@/lib/seo";
 
 /**
@@ -13,5 +15,10 @@ export const metadata: Metadata = pageMetadata({
 });
 
 export default function ConsentLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+  return (
+    <>
+      <JsonLd data={breadcrumbSchema({ name: "Politique de Consentement", path: "/consent" })} />
+      {children}
+    </>
+  );
 }

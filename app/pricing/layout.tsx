@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import JsonLd from "../components/JsonLd";
+import { PRICING_FAQ } from "@/lib/faq";
+import { breadcrumbSchema, faqPageSchema } from "@/lib/schema";
 import { pageMetadata } from "@/lib/seo";
 
 /**
@@ -13,5 +16,15 @@ export const metadata: Metadata = pageMetadata({
 });
 
 export default function PricingLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+  return (
+    <>
+      <JsonLd
+        data={[
+          breadcrumbSchema({ name: "Tarifs", path: "/pricing" }),
+          faqPageSchema(PRICING_FAQ, "/pricing"),
+        ]}
+      />
+      {children}
+    </>
+  );
 }

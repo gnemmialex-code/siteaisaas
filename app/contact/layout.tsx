@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import JsonLd from "../components/JsonLd";
+import { breadcrumbSchema } from "@/lib/schema";
 import { pageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata({
@@ -9,5 +11,10 @@ export const metadata: Metadata = pageMetadata({
 });
 
 export default function ContactLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+  return (
+    <>
+      <JsonLd data={breadcrumbSchema({ name: "Contact", path: "/contact" })} />
+      {children}
+    </>
+  );
 }

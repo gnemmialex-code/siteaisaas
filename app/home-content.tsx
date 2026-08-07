@@ -7,6 +7,7 @@ import Link from "next/link";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import BeforeAfterSlider from "./components/BeforeAfterSlider";
+import { HOME_FAQ } from "@/lib/faq";
 import {
   Sparkles, Star, ArrowRight, Play,
   ChevronDown, Quote, ImageIcon, Film,
@@ -109,24 +110,9 @@ const MOBILE_EXAMPLE =
 // Version PC (horizontale). Section masquée sur téléphone (visible à partir de sm).
 const DEMO_VIDEO = "/videos/tuto-astra-horizontal.mp4";
 
-const FAQ_ITEMS = [
-  {
-    q: "Mes photos sont-elles conservées ?",
-    a: "Non. Votre photo originale est automatiquement supprimée de nos serveurs après traitement. Seule l'image générée est stockée dans votre historique, et vous pouvez la supprimer à tout moment.",
-  },
-  {
-    q: "Puis-je utiliser n'importe quelle photo ?",
-    a: "Oui, tant que le visage est bien visible, de face ou légèrement de profil, avec une bonne luminosité. Les photos floues, très sombres ou avec plusieurs visages donnent des résultats moins précis.",
-  },
-  {
-    q: "Combien de générations puis-je faire ?",
-    a: "Tous les abonnements incluent des générations illimitées. Sans abonnement, vous obtenez un aperçu flouté ; le rendu net en HD se débloque dès qu'un abonnement est actif.",
-  },
-  {
-    q: "Quelle est la résolution finale des images ?",
-    a: "Toutes les images sont générées puis upscalées x4 via RealESRGAN. La résolution finale atteint jusqu'à 4K (4096×4096 px) selon le style choisi.",
-  },
-];
+// Le texte de la FAQ vit dans lib/faq.ts : il alimente à la fois cet accordéon
+// et le balisage FAQPage de app/page.tsx, qui doivent rester identiques.
+const FAQ_ITEMS = HOME_FAQ;
 
 // ─── COMPOSANTS INTERNES ────────────────────────────────────────────────────
 

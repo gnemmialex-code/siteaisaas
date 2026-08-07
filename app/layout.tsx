@@ -4,6 +4,8 @@ import { Toaster } from "react-hot-toast";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { HOME_DESCRIPTION, HOME_TITLE, SITE_NAME, SITE_URL } from "@/lib/seo";
+import { organizationSchema, websiteSchema } from "@/lib/schema";
+import JsonLd from "./components/JsonLd";
 import "./globals.css";
 
 const inter = Inter({
@@ -53,6 +55,9 @@ export default function RootLayout({
   return (
     <html lang="fr" className={`dark ${inter.variable} ${jetbrainsMono.variable}`}>
       <body className="bg-background text-foreground antialiased">
+        {/* Identité du site, valable sur toutes les pages. Les schémas propres
+            à une page (FAQPage, BreadcrumbList…) sont injectés par la page. */}
+        <JsonLd data={[organizationSchema(), websiteSchema()]} />
         <Toaster
           position="top-right"
           toastOptions={{
