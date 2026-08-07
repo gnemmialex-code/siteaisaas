@@ -22,7 +22,9 @@ export default function Footer() {
 
           {/* Links */}
           <div>
-            <h4 className="font-semibold text-sm sm:text-base mb-2 sm:mb-4 text-white/80">Produit</h4>
+            {/* h3 et non h4 : le dernier niveau utilisé au-dessus dans les pages
+                est h2, un h4 créerait un saut de niveau. Style inchangé. */}
+            <h3 className="font-semibold text-sm sm:text-base mb-2 sm:mb-4 text-white/80">Produit</h3>
             <ul className="space-y-1.5 sm:space-y-2">
               {[
                 { href: "/upload", label: "Générer" },
@@ -39,7 +41,7 @@ export default function Footer() {
           </div>
 
           <div>
-            <h4 className="font-semibold text-sm sm:text-base mb-2 sm:mb-4 text-white/80">Légal</h4>
+            <h3 className="font-semibold text-sm sm:text-base mb-2 sm:mb-4 text-white/80">Légal</h3>
             <ul className="space-y-1.5 sm:space-y-2">
               {[
                 { href: "/terms", label: "CGU" },

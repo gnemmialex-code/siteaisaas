@@ -75,7 +75,8 @@ function ContactForm() {
         <div className="w-16 h-16 bg-green-500/20 border border-green-500/30 rounded-2xl flex items-center justify-center mb-5">
           <span className="text-3xl">✓</span>
         </div>
-        <h3 className="text-2xl font-bold mb-2">Message envoyé !</h3>
+        {/* h2 : ce bloc remplace le formulaire directement sous le h1 de la page */}
+        <h2 className="text-2xl font-bold mb-2">Message envoyé !</h2>
         <p className="text-white/50 max-w-sm">
           Merci {firstName}, nous avons bien reçu votre message et vous répondrons rapidement.
         </p>
@@ -246,6 +247,10 @@ export default function ContactPage() {
               animate={{ opacity: 1, x: 0 }}
               className="lg:col-span-3 card"
             >
+              {/* Titre de niveau 2 réservé aux lecteurs d'écran et aux crawlers :
+                  le formulaire n'a pas de titre visible, et sans lui la page
+                  passait directement du h1 aux h3 du pied de page. */}
+              <h2 className="sr-only">Formulaire de contact</h2>
               <ContactForm />
             </motion.div>
 

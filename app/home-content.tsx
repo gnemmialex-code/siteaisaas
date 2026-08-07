@@ -42,14 +42,52 @@ const REVIEWS = [
 // les champs `mobile` / `mobileFirst` ne servent donc plus.
 // ⬇️ C'EST ICI QU'ON NOMME LES EXEMPLES : le champ `style` est le texte affiché
 // en bas de chaque carte sur le site. Les fichiers restent A1…A6 dans /public/examples/.
+// `altBefore` / `altAfter` : texte alternatif de chaque moitié du comparateur.
+// Contrairement au fond du hero, ces images sont du vrai contenu de page —
+// chaque texte est donc descriptif et unique.
 const EXAMPLES_IMAGES = [
-  { style: "Hublot Big Bang",       before: "/examples/A1_avant.png", after: "/examples/A1_apres.png", mobile: false, mobileFirst: false },
-  { style: "Rolex Deepsea D-Blue",  before: "/examples/A2_avant.png", after: "/examples/A2_apres.png", mobile: true,  mobileFirst: false },
-  { style: "Hublot Classic Fusion", before: "/examples/A3_avant.png", after: "/examples/A3_apres.png", mobile: false, mobileFirst: false },
-  { style: "Rolex Oyster Perpetual",before: "/examples/A4_avant.png", after: "/examples/A4_apres.png", mobile: false, mobileFirst: false },
-  { style: "Tudor Black Bay",       before: "/examples/A5_avant.png", after: "/examples/A5_apres.png", mobile: false, mobileFirst: false },
-  { style: "Rolex Submariner Hulk", before: "/examples/A6_avant.png", after: "/examples/A6_apres.png", mobile: true,  mobileFirst: true },
-
+  {
+    style: "Hublot Big Bang",
+    before: "/examples/A1_avant.png", after: "/examples/A1_apres.png",
+    altBefore: "Poignet nu photographié avant l'essayage virtuel de la Hublot Big Bang",
+    altAfter:  "Hublot Big Bang ajoutée au poignet par l'IA AstraCrea, rendu photoréaliste 4K",
+    mobile: false, mobileFirst: false,
+  },
+  {
+    style: "Rolex Deepsea D-Blue",
+    before: "/examples/A2_avant.png", after: "/examples/A2_apres.png",
+    altBefore: "Poignet nu photographié avant l'essayage virtuel de la Rolex Deepsea D-Blue",
+    altAfter:  "Rolex Deepsea au cadran dégradé bleu et noir ajoutée au poignet par l'IA AstraCrea",
+    mobile: true,  mobileFirst: false,
+  },
+  {
+    style: "Hublot Classic Fusion",
+    before: "/examples/A3_avant.png", after: "/examples/A3_apres.png",
+    altBefore: "Poignet nu photographié avant l'essayage virtuel de la Hublot Classic Fusion",
+    altAfter:  "Hublot Classic Fusion au boîtier fin ajoutée au poignet par l'IA AstraCrea",
+    mobile: false, mobileFirst: false,
+  },
+  {
+    style: "Rolex Oyster Perpetual",
+    before: "/examples/A4_avant.png", after: "/examples/A4_apres.png",
+    altBefore: "Poignet nu photographié avant l'essayage virtuel de la Rolex Oyster Perpetual",
+    altAfter:  "Rolex Oyster Perpetual sur bracelet acier ajoutée au poignet par l'IA AstraCrea",
+    mobile: false, mobileFirst: false,
+  },
+  {
+    style: "Tudor Black Bay",
+    before: "/examples/A5_avant.png", after: "/examples/A5_apres.png",
+    altBefore: "Poignet nu photographié avant l'essayage virtuel de la Tudor Black Bay",
+    altAfter:  "Tudor Black Bay à lunette de plongée ajoutée au poignet par l'IA AstraCrea",
+    mobile: false, mobileFirst: false,
+  },
+  {
+    style: "Rolex Submariner Hulk",
+    before: "/examples/A6_avant.png", after: "/examples/A6_apres.png",
+    altBefore: "Poignet nu photographié avant l'essayage virtuel de la Rolex Submariner Hulk",
+    altAfter:  "Rolex Submariner Hulk au cadran et à la lunette verts ajoutée au poignet par l'IA AstraCrea",
+    mobile: true,  mobileFirst: true,
+  },
 ];
 
 // Vidéos : remplis youtubeId OU localSrc (pas les deux)
@@ -161,7 +199,11 @@ function ImageRow({
 
 function HeroImageBackground() {
   return (
-    <div className="absolute inset-0 overflow-hidden select-none pointer-events-none">
+    /* aria-hidden : ce fond est décoratif. Chaque image y est présente deux fois
+       (la liste est dupliquée pour la boucle de défilement), elle est posée sous
+       plusieurs voiles sombres et n'est jamais cliquable — un texte alternatif
+       n'apporterait rien d'autre que du bruit dans les lecteurs d'écran. */
+    <div aria-hidden="true" className="absolute inset-0 overflow-hidden select-none pointer-events-none">
       {/* Fond noir de base */}
       <div className="absolute inset-0 bg-[#0D0D0D]" />
 
@@ -373,6 +415,8 @@ function ExamplesGallery() {
             before={MOBILE_EXAMPLE.before}
             after={MOBILE_EXAMPLE.after}
             alt={MOBILE_EXAMPLE.style}
+            altBefore={MOBILE_EXAMPLE.altBefore}
+            altAfter={MOBILE_EXAMPLE.altAfter}
           />
           <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/70 to-transparent pointer-events-none">
             <p className="text-white text-xs font-medium">{MOBILE_EXAMPLE.style}</p>
@@ -384,6 +428,7 @@ function ExamplesGallery() {
         >
           <video
             src={EXAMPLES_VIDEOS[0].localSrc}
+            aria-label="Vidéo : génération par IA d'une Hublot au poignet, de la photo d'origine au rendu final"
             autoPlay
             loop
             muted
@@ -413,7 +458,13 @@ function ExamplesGallery() {
                   className="relative rounded-2xl overflow-hidden border border-surface-border"
                   style={{ aspectRatio: "9/16" }}
                 >
-                  <BeforeAfterSlider before={ex.before} after={ex.after} alt={ex.style} />
+                  <BeforeAfterSlider
+                    before={ex.before}
+                    after={ex.after}
+                    alt={ex.style}
+                    altBefore={ex.altBefore}
+                    altAfter={ex.altAfter}
+                  />
                   <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/70 to-transparent pointer-events-none">
                     <p className="text-white text-xs font-medium">{ex.style}</p>
                   </div>
@@ -475,7 +526,13 @@ function ExamplesGallery() {
                 className={`group relative rounded-2xl overflow-hidden border border-surface-border hover:border-accent-violet/50 transition-all duration-300 ${ex.mobile ? "" : "hidden sm:block"} ${ex.mobileFirst ? "order-first sm:order-none" : ""}`} style={{ aspectRatio: "9/16" }}
               >
                 {ex.before && ex.after ? (
-                  <BeforeAfterSlider before={ex.before} after={ex.after} alt={ex.style} />
+                  <BeforeAfterSlider
+                    before={ex.before}
+                    after={ex.after}
+                    alt={ex.style}
+                    altBefore={ex.altBefore}
+                    altAfter={ex.altAfter}
+                  />
                 ) : (
                   /* Placeholder jusqu'à avoir de vraies images */
                   <div className="w-full h-full bg-surface-hover flex flex-col items-center justify-center gap-3">
@@ -524,6 +581,7 @@ function ExamplesGallery() {
                   ) : vid.localSrc ? (
                     <video
                       src={vid.localSrc}
+                      aria-label={`Vidéo d'exemple : ${vid.title} générée par l'IA AstraCrea`}
                       autoPlay
                       loop
                       muted
@@ -613,6 +671,7 @@ function DemoVideoSection() {
                 {videoInView && (
                   <video
                     src={DEMO_VIDEO}
+                    aria-label="Démonstration AstraCrea : de la photo d'origine au rendu 4K d'une montre de luxe au poignet"
                     autoPlay
                     loop
                     muted
@@ -634,6 +693,16 @@ function DemoVideoSection() {
   );
 }
 
+/**
+ * Accordéon FAQ.
+ *
+ * Les réponses sont TOUJOURS présentes dans le DOM, y compris dans le HTML
+ * rendu par le serveur : elles ne sont plus montées conditionnellement en JS.
+ * Le repli est purement CSS — une grille dont la ligne passe de 0fr à 1fr,
+ * ce qui anime la hauteur aussi bien que l'ancien `height: auto` de
+ * framer-motion, mais sans démonter le texte. Un crawler qui n'exécute pas
+ * (ou peu) de JavaScript lit donc les quatre réponses en entier.
+ */
 function FaqAccordion() {
   const [open, setOpen] = useState<number | null>(null);
 
@@ -641,6 +710,8 @@ function FaqAccordion() {
     <div className="space-y-2 sm:space-y-3">
       {FAQ_ITEMS.map((item, i) => {
         const isOpen = open === i;
+        const panelId = `faq-panel-${i}`;
+        const buttonId = `faq-button-${i}`;
         return (
           <motion.div
             key={i}
@@ -652,33 +723,41 @@ function FaqAccordion() {
               isOpen ? "border-accent-violet/50 bg-accent-violet/5" : "border-surface-border bg-surface"
             }`}
           >
-            <button
-              onClick={() => setOpen(isOpen ? null : i)}
-              className="w-full flex items-center justify-between px-3.5 py-2.5 sm:px-5 sm:py-3.5 text-left group"
+            {/* h3 : la question est un vrai niveau de titre sous le h2
+                « Questions fréquentes », pas un simple libellé de bouton. */}
+            <h3>
+              <button
+                id={buttonId}
+                aria-expanded={isOpen}
+                aria-controls={panelId}
+                onClick={() => setOpen(isOpen ? null : i)}
+                className="w-full flex items-center justify-between px-3.5 py-2.5 sm:px-5 sm:py-3.5 text-left group"
+              >
+                <span className={`font-semibold text-xs sm:text-sm transition-colors ${isOpen ? "text-white" : "text-white/80 group-hover:text-white"}`}>
+                  {item.q}
+                </span>
+                <ChevronDown
+                  className={`w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 ml-3 sm:ml-4 transition-all duration-300 ${
+                    isOpen ? "rotate-180 text-accent-violet" : "text-white/30 group-hover:text-white/60"
+                  }`}
+                />
+              </button>
+            </h3>
+
+            <div
+              id={panelId}
+              role="region"
+              aria-labelledby={buttonId}
+              className={`grid transition-[grid-template-rows] duration-[250ms] ease-in-out ${
+                isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+              }`}
             >
-              <span className={`font-semibold text-xs sm:text-sm transition-colors ${isOpen ? "text-white" : "text-white/80 group-hover:text-white"}`}>
-                {item.q}
-              </span>
-              <ChevronDown
-                className={`w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 ml-3 sm:ml-4 transition-all duration-300 ${
-                  isOpen ? "rotate-180 text-accent-violet" : "text-white/30 group-hover:text-white/60"
-                }`}
-              />
-            </button>
-            <AnimatePresence initial={false}>
-              {isOpen && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.25, ease: "easeInOut" }}
-                >
-                  <p className="px-3.5 pb-3 sm:px-5 sm:pb-4 text-white/60 leading-relaxed text-[11px] sm:text-sm">
-                    {item.a}
-                  </p>
-                </motion.div>
-              )}
-            </AnimatePresence>
+              <div className="overflow-hidden">
+                <p className="px-3.5 pb-3 sm:px-5 sm:pb-4 text-white/60 leading-relaxed text-[11px] sm:text-sm">
+                  {item.a}
+                </p>
+              </div>
+            </div>
           </motion.div>
         );
       })}
@@ -718,27 +797,26 @@ export default function HomeContent() {
             </span>
           </motion.div>
 
+          {/* Unique <h1> de la page. Le slogan reste le texte géant ; la ligne
+              descriptive qui suit était un <p> séparé — elle est maintenant un
+              <span> à l'intérieur du h1, pour que le titre principal contienne
+              les termes réellement recherchés. Les classes de chaque partie sont
+              celles d'avant, le rendu est identique. */}
           <motion.h1
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-[2rem] sm:text-7xl lg:text-8xl font-black leading-tight mb-3 sm:mb-6"
+            className="text-[2rem] sm:text-7xl lg:text-8xl font-black leading-tight mb-5 sm:mb-12"
           >
             Fake It{" "}
             <span className="gradient-text">Until You</span>
             <br />
             <span className="text-white/90">Make It</span>
+            <span className="block font-normal tracking-normal leading-normal text-sm sm:text-2xl text-white/60 max-w-2xl mx-auto mt-3 sm:mt-6">
+              Essayage virtuel de montres de luxe par IA : les modèles les plus
+              rares à votre poignet, en 4K et en moins de 30 secondes.
+            </span>
           </motion.h1>
-
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-sm sm:text-2xl text-white/60 max-w-2xl mx-auto mb-5 sm:mb-12"
-          >
-            Les montres de luxe les plus rares au poignet,
-            résultats 4K ultra en moins de 30 secondes !
-          </motion.p>
 
           <motion.div
             ref={heroCtaRef}

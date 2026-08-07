@@ -295,6 +295,10 @@ export default function PricingPage() {
         </motion.div>
 
         {/* Plans */}
+        {/* Titre de niveau 2 réservé aux lecteurs d'écran et aux crawlers : la
+            grille de formules n'a pas de titre visible, et sans lui les noms de
+            plans (h3) sauteraient directement du h1 au h3. */}
+        <h2 className="sr-only">Nos formules d&apos;abonnement</h2>
         <div className="plans-grid grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-6 mb-16">
           {PLANS.map((plan, i) => {
             const monthlyPrice = plan.priceMonthly;
@@ -494,7 +498,8 @@ export default function PricingPage() {
           viewport={{ once: true }}
           className="card border-accent-neon/20 bg-accent-neon/5 text-center mb-16"
         >
-          <h3 className="text-2xl font-bold mb-2">Essayez gratuitement</h3>
+          {/* Bloc de niveau section, au même rang que « Questions fréquentes » */}
+          <h2 className="text-2xl font-bold mb-2">Essayez gratuitement</h2>
           <p className="text-white/50 mb-4">
             Créez un compte gratuit et générez un aperçu de votre transformation. Débloquez le rendu net en HD avec un abonnement. Aucune carte bancaire requise pour tester.
           </p>
@@ -519,7 +524,7 @@ export default function PricingPage() {
                 transition={{ delay: i * 0.05 }}
                 className="card"
               >
-                <h4 className="font-semibold mb-2">{item.q}</h4>
+                <h3 className="font-semibold mb-2">{item.q}</h3>
                 <p className="text-white/50 text-sm leading-relaxed">{item.a}</p>
               </motion.div>
             ))}
