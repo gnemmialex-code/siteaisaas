@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { MetadataRoute } from "next";
 import { getPublishedPosts } from "@/lib/blog";
+import { EXAMPLE_IMAGE_PATHS } from "@/lib/examples";
 import { getPublishedLandingPages, landingPath } from "@/lib/landing";
 import { isPrivateRoute, sitemapSettings } from "@/lib/routes";
 import { SITE_URL } from "@/lib/seo";
@@ -54,6 +55,20 @@ function lastModified(file: string): Date {
   return new Date();
 }
 
+/**
+ * Images de contenu déclarées par page (extension sitemap images de Google).
+ *
+ * Seules les images qui sont du vrai contenu y figurent. Le fond du hero en est
+ * absent volontairement : ses tuiles sont décoratives, posées sous plusieurs
+ * voiles et marquées aria-hidden — les déclarer reviendrait à pousser vers
+ * Google Images des visuels que la page elle-même ne présente pas comme du
+ * contenu. Les logos et les aperçus d'upload en sont absents pour la même
+ * raison.
+ */
+const IMAGES_BY_ROUTE: Record<string, string[]> = {
+  "/": EXAMPLE_IMAGE_PATHS,
+};
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // 1. Routes statiques réellement présentes dans app/
   const staticRoutes: MetadataRoute.Sitemap = collectRoutes()
@@ -61,11 +76,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .sort((a, b) => a.route.localeCompare(b.route))
     .map(({ route, file }) => {
       const { changeFrequency, priority } = sitemapSettings(route);
+      const images = IMAGES_BY_ROUTE[route];
       return {
         url: new URL(route, SITE_URL).toString(),
         lastModified: lastModified(file),
         changeFrequency,
         priority,
+        ...(images ? { images: images.map((p) => new URL(p, SITE_URL).toString()) } : {}),
       };
     });
 

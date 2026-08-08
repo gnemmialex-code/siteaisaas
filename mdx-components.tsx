@@ -68,14 +68,36 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
       );
     },
 
-    // Une image d'article doit toujours déclarer ses dimensions (CLS).
-    img: (props) => (
-      <Image
-        sizes="(max-width: 768px) 100vw, 768px"
-        className="rounded-xl border border-surface-border my-6 w-full h-auto"
-        {...(props as ImageProps)}
-      />
-    ),
+    /**
+     * Une image d'article doit toujours déclarer ses dimensions (CLS) et un
+     * texte alternatif.
+     *
+     * L'`alt` vient du Markdown : `![texte](image.png)`. Un auteur qui écrit
+     * `![](image.png)` produirait une image annoncée comme décorative et
+     * invisible pour Google Images — sur un blog écrit pour le référencement,
+     * c'est une perte silencieuse. On avertit donc en développement plutôt que
+     * de laisser passer. En production on n'échoue pas le rendu pour autant :
+     * `alt=""` reste un repli valide côté accessibilité.
+     */
+    img: (props) => {
+      const { alt, ...rest } = props as ImageProps;
+
+      if (process.env.NODE_ENV !== "production" && !alt) {
+        console.warn(
+          `[mdx] Image sans texte alternatif : ${String(rest.src)} — ` +
+            "écris ![description de l'image](chemin) dans le .mdx.",
+        );
+      }
+
+      return (
+        <Image
+          sizes="(max-width: 768px) 100vw, 768px"
+          className="rounded-xl border border-surface-border my-6 w-full h-auto"
+          alt={alt ?? ""}
+          {...rest}
+        />
+      );
+    },
 
     ...components,
   };

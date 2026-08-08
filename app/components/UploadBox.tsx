@@ -77,7 +77,7 @@ export default function UploadBox({
             className="relative rounded-2xl overflow-hidden border border-accent-violet/40 shadow-violet"
           >
             <div className="aspect-square relative">
-              <Image src={preview} alt="Preview" fill className="object-cover" />
+              <Image src={preview} alt="Aperçu de la photo sélectionnée" fill className="object-cover" />
             </div>
             <button
               onClick={onClear}

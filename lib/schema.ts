@@ -11,6 +11,7 @@
  * ─────────────────────────────────────────────────────────────────────────
  */
 
+import { EXAMPLES_IMAGES } from "@/lib/examples";
 import type { FaqItem } from "@/lib/faq";
 import { PLAN_OFFERS, PRICE_CURRENCY } from "@/lib/plans";
 import { HOME_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/seo";
@@ -94,6 +95,10 @@ export function softwareApplicationSchema(): Record<string, unknown> {
     browserRequirements: "Navigateur moderne avec JavaScript activé",
     inLanguage: "fr-FR",
     description: HOME_DESCRIPTION,
+    // Rendus réellement produits par l'application, et réellement affichés sur
+    // la home : ce sont les moitiés « après » des comparateurs. Rien n'est
+    // déclaré ici qui ne soit visible sur la page.
+    image: EXAMPLES_IMAGES.map((e) => abs(e.after)),
     publisher: { "@id": ORGANIZATION_ID },
     offers: {
       "@type": "AggregateOffer",

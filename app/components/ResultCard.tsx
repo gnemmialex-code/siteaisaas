@@ -208,7 +208,7 @@ export default function ResultCard({
           onClick={() => setIsFullscreen(false)}
         >
           <div className="relative max-w-3xl max-h-full w-full aspect-square">
-            <Image src={outputUrl} alt="Plein écran" fill className="object-contain rounded-2xl" />
+            <Image src={outputUrl} alt="Image générée par AstraCrea, affichée en plein écran" fill className="object-contain rounded-2xl" />
           </div>
           <button
             className="absolute top-4 right-4 w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-white"

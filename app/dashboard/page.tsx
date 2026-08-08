@@ -1038,8 +1038,11 @@ export default function DashboardPage() {
 
         {/* Logo */}
         <Link href="/" className="px-5 py-4 border-b border-surface-border flex items-center gap-2 hover:bg-surface-hover transition-colors">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo2.png" alt="AstraCrea" className="h-11 w-auto rounded-xl" />
+          {/* next/image et non <img> brut : le fichier source fait 2000×2000
+              pour 206 Ko et il était servi tel quel pour un rendu de 44 px.
+              alt vide : le nom « AstraCrea » suit immédiatement dans le même
+              lien, le répéter ferait annoncer la marque deux fois. */}
+          <Image src="/logo2.png" alt="" width={44} height={44} priority className="h-11 w-auto rounded-xl" />
           <span className="font-black text-lg tracking-tight">Astra<span className="gradient-text">Crea</span></span>
         </Link>
 
@@ -1516,7 +1519,7 @@ export default function DashboardPage() {
                               {resultIsVideo ? (
                                 <video src={resultUrl} controls autoPlay loop playsInline className={`absolute inset-0 w-full h-full object-contain ${isPaid ? "" : "blur-[48px] scale-125"}`} />
                               ) : (
-                                <Image src={resultUrl} alt={resultStyle} fill className={`object-contain ${isPaid ? "" : "blur-[48px] scale-125"}`} />
+                                <Image src={resultUrl} alt={`Image générée par AstraCrea — style ${resultStyle}`} fill className={`object-contain ${isPaid ? "" : "blur-[48px] scale-125"}`} />
                               )}
                               {!isPaid && <BlurVeil strong />}
                               {!isPaid && <LockedOverlay onUnlock={unlockAction} signup={isAnon} />}
@@ -1642,7 +1645,7 @@ export default function DashboardPage() {
                                 {resultIsVideo ? (
                                   <video src={resultUrl} controls autoPlay loop playsInline className={`absolute inset-0 w-full h-full object-contain ${isPaid ? "" : "blur-[48px] scale-125"}`} />
                                 ) : (
-                                  <Image src={resultUrl} alt={resultStyle || "Résultat"} fill className={`object-contain ${isPaid ? "" : "blur-[48px] scale-125"}`} />
+                                  <Image src={resultUrl} alt={resultStyle ? `Image générée par AstraCrea — style ${resultStyle}` : "Image générée par AstraCrea"} fill className={`object-contain ${isPaid ? "" : "blur-[48px] scale-125"}`} />
                                 )}
                                 {!isPaid && <BlurVeil strong />}
                                 {!isPaid && <LockedOverlay onUnlock={unlockAction} signup={isAnon} />}
@@ -1787,7 +1790,7 @@ export default function DashboardPage() {
                             {/\.(mp4|webm|mov)$/i.test(gen.output_image_url.split("?")[0]) ? (
                               <video src={gen.output_image_url} muted loop playsInline autoPlay className={`absolute inset-0 w-full h-full object-cover ${isPaid ? "" : "blur-xl scale-110"}`} />
                             ) : (
-                              <Image src={gen.output_image_url} alt={gen.style} fill className={`object-cover ${isPaid ? "" : "blur-xl scale-110"}`} />
+                              <Image src={gen.output_image_url} alt={`Image générée par AstraCrea — style ${gen.style}`} fill className={`object-cover ${isPaid ? "" : "blur-xl scale-110"}`} />
                             )}
                             {!isPaid && <BlurVeil />}
                             {!isPaid && <LockedOverlay onUnlock={unlockAction} signup={isAnon} compact />}

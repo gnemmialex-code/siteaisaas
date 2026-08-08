@@ -158,7 +158,7 @@ function ContactForm() {
         {imagePreview ? (
           <div className="relative inline-block">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={imagePreview} alt="preview" className="h-24 rounded-xl object-cover border border-surface-border" />
+            <img src={imagePreview} alt="Aperçu de l'image jointe au message" className="h-24 rounded-xl object-cover border border-surface-border" />
             <button
               type="button"
               onClick={() => { setImageFile(null); setImagePreview(null); }}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
@@ -117,8 +118,11 @@ export default function LoginPage() {
       >
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 mb-6">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo2.png" alt="AstraCrea" className="h-14 w-auto rounded-xl" />
+            {/* next/image et non <img> brut : le fichier source fait 2000×2000
+                pour 206 Ko et il était servi tel quel pour un rendu de 56 px.
+                alt vide : le nom « AstraCrea » suit immédiatement dans le même
+                lien, le répéter ferait annoncer la marque deux fois. */}
+            <Image src="/logo2.png" alt="" width={56} height={56} priority className="h-14 w-auto rounded-xl" />
             <span className="font-black text-2xl tracking-tight">Astra<span className="gradient-text">Crea</span></span>
           </Link>
           <h1 className="text-3xl font-bold mb-2">Connexion</h1>

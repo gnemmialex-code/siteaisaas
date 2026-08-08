@@ -8,6 +8,7 @@ import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import BeforeAfterSlider from "./components/BeforeAfterSlider";
 import { HOME_FAQ } from "@/lib/faq";
+import { EXAMPLES_IMAGES, MOBILE_EXAMPLE } from "@/lib/examples";
 import {
   Sparkles, Star, ArrowRight, Play,
   ChevronDown, Quote, ImageIcon, Film,
@@ -36,60 +37,9 @@ const REVIEWS = [
 
 ];
 
-// Pour les exemples : mets tes vraies images dans /public/examples/
-// Format : { style, before: "/examples/before1.jpg", after: "/examples/after1.jpg" }
-// Cette liste n'est affichée QUE sur ordinateur (sm+), dans l'ordre du tableau.
-// Sur téléphone, seul MOBILE_EXAMPLE (plus bas) est affiché, à côté de la vidéo :
-// les champs `mobile` / `mobileFirst` ne servent donc plus.
-// ⬇️ C'EST ICI QU'ON NOMME LES EXEMPLES : le champ `style` est le texte affiché
-// en bas de chaque carte sur le site. Les fichiers restent A1…A6 dans /public/examples/.
-// `altBefore` / `altAfter` : texte alternatif de chaque moitié du comparateur.
-// Contrairement au fond du hero, ces images sont du vrai contenu de page —
-// chaque texte est donc descriptif et unique.
-const EXAMPLES_IMAGES = [
-  {
-    style: "Hublot Big Bang",
-    before: "/examples/A1_avant.png", after: "/examples/A1_apres.png",
-    altBefore: "Poignet nu photographié avant l'essayage virtuel de la Hublot Big Bang",
-    altAfter:  "Hublot Big Bang ajoutée au poignet par l'IA AstraCrea, rendu photoréaliste 4K",
-    mobile: false, mobileFirst: false,
-  },
-  {
-    style: "Rolex Deepsea D-Blue",
-    before: "/examples/A2_avant.png", after: "/examples/A2_apres.png",
-    altBefore: "Poignet nu photographié avant l'essayage virtuel de la Rolex Deepsea D-Blue",
-    altAfter:  "Rolex Deepsea au cadran dégradé bleu et noir ajoutée au poignet par l'IA AstraCrea",
-    mobile: true,  mobileFirst: false,
-  },
-  {
-    style: "Hublot Classic Fusion",
-    before: "/examples/A3_avant.png", after: "/examples/A3_apres.png",
-    altBefore: "Poignet nu photographié avant l'essayage virtuel de la Hublot Classic Fusion",
-    altAfter:  "Hublot Classic Fusion au boîtier fin ajoutée au poignet par l'IA AstraCrea",
-    mobile: false, mobileFirst: false,
-  },
-  {
-    style: "Rolex Oyster Perpetual",
-    before: "/examples/A4_avant.png", after: "/examples/A4_apres.png",
-    altBefore: "Poignet nu photographié avant l'essayage virtuel de la Rolex Oyster Perpetual",
-    altAfter:  "Rolex Oyster Perpetual sur bracelet acier ajoutée au poignet par l'IA AstraCrea",
-    mobile: false, mobileFirst: false,
-  },
-  {
-    style: "Tudor Black Bay",
-    before: "/examples/A5_avant.png", after: "/examples/A5_apres.png",
-    altBefore: "Poignet nu photographié avant l'essayage virtuel de la Tudor Black Bay",
-    altAfter:  "Tudor Black Bay à lunette de plongée ajoutée au poignet par l'IA AstraCrea",
-    mobile: false, mobileFirst: false,
-  },
-  {
-    style: "Rolex Submariner Hulk",
-    before: "/examples/A6_avant.png", after: "/examples/A6_apres.png",
-    altBefore: "Poignet nu photographié avant l'essayage virtuel de la Rolex Submariner Hulk",
-    altAfter:  "Rolex Submariner Hulk au cadran et à la lunette verts ajoutée au poignet par l'IA AstraCrea",
-    mobile: true,  mobileFirst: true,
-  },
-];
+// Les exemples « avant / après » vivent dans lib/examples.ts : ils alimentent à
+// la fois ces comparateurs et le sitemap images de app/sitemap.ts, qui doivent
+// désigner exactement les mêmes fichiers.
 
 // Vidéos : remplis youtubeId OU localSrc (pas les deux)
 // localSrc : mets ta vidéo dans /public/videos/ et indique le chemin ex: "/videos/demo.mp4"
@@ -101,10 +51,6 @@ const EXAMPLES_VIDEOS = [
     localSrc: encodeURI("/videos/test_vidéo_génération_hublot.MP4"),
   },
 ];
-
-// Exemple affiché sur téléphone (à côté de la vidéo) dans « Exemples de transformations ».
-const MOBILE_EXAMPLE =
-  EXAMPLES_IMAGES.find(e => e.style === "Rolex Submariner Hulk") ?? EXAMPLES_IMAGES[0];
 
 // ─── VIDÉO DÉMO (section sous le hero) ──────────────────────────────────────
 // Version PC (horizontale). Section masquée sur téléphone (visible à partir de sm).
