@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence, useInView } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
@@ -9,28 +9,27 @@ import Footer from "./components/Footer";
 import BeforeAfterSlider from "./components/BeforeAfterSlider";
 import {
   Sparkles, Star, ArrowRight, Play,
-  ChevronDown, Quote, ImageIcon, Film, Flame, Check,
+  ChevronDown, Quote, Flame, Check,
 } from "lucide-react";
 
 // ─── DONNÉES ────────────────────────────────────────────────────────────────
 
 
 const STATS = [
-  { value: "50K+", label: "Générations" },
   { value: "4.9★", label: "Note moyenne" },
   { value: "<30s", label: "Temps moyen" },
   { value: "4K", label: "Résolution max" },
 ];
 
 const REVIEWS = [
-  { name: "Soph!_mtbl", city: "Paris", stars: 5, text: "Incroyable ! Le résultat est tellement réaliste, j'ai partagé sur Instagram et tout le monde pensait que c'était vrai." },
-  { name: "Lucasss9378!", city: "Lyon", stars: 5, text: "La qualité 4K est bluffante. En 30 secondes j'avais mon photo en style Hollywood. Je recommande vivement !" },
-  { name: "Chl0E.BRZH", city: "Bordeaux", stars: 5, text: "Parfait pour les photos de profil. Le style Vogue Editorial est mon préféré, le rendu est professionnel." },
-  { name: "Max.xAm76", city: "Dijon", stars: 5, text: "J'utilise AstraCrea chaque semaine. L'abonnement Pro en illimité, excellent rapport qualité/prix." },
+  { name: "Soph!_mtbl", city: "Paris", stars: 5, text: "Incroyable ! Ma photo avec Scarlett Johansson est tellement réaliste, je l'ai partagée sur Instagram et tout le monde pensait que c'était vrai." },
+  { name: "Lucasss9378!", city: "Lyon", stars: 5, text: "La qualité est bluffante. En quelques secondes j'avais ma photo aux côtés de Leonardo DiCaprio. Je recommande vivement !" },
+  { name: "Chl0E.BRZH", city: "Bordeaux", stars: 5, text: "Parfait pour les photos de profil. Celle avec Kylian Mbappé est ma préférée, le rendu est vraiment professionnel." },
+  { name: "Max.xAm76", city: "Dijon", stars: 5, text: "J'utilise AstraCrea chaque semaine, ma dernière photo avec Denzel Washington est dingue. L'abonnement Pro en illimité, excellent rapport qualité/prix." },
   { name: "Em1.Rtbu", city: "Nantes", stars: 4, text: "Très bon service ! Seul petit bémol, parfois 40 secondes au lieu de 20 habituellement. Je pense que je vais passer à Ultra pour aller plus vite !" },
-  { name: "ThomAss772ltrb", city: "Toulouse", stars: 5, text: "J'ai essayé d'autres outils, rien n'arrive à la cheville d'AstraCrea. La précision de la transformation est exceptionnelle." },
-  { name: "Cam.sdr", city: "Strasbourg", stars: 5, text: "Le style Met Gala est trop bien. On dirait une vraie photo de gala. Mes amis n'en reviennent pas !" },
-  { name: "FelixStrxu", city: "Nice", stars: 5, text: "Simple, rapide, bluffant. Je l'utilise pour mes contenus créatifs. Le pipeline IA est vraiment au top." },
+  { name: "ThomAss772ltrb", city: "Toulouse", stars: 5, text: "J'ai essayé d'autres outils, rien n'arrive à la cheville d'AstraCrea. Ma photo avec Mia Khalifa est d'une précision exceptionnelle." },
+  { name: "Cam.sdr", city: "Strasbourg", stars: 5, text: "Ma photo avec Johnny Sins est trop bien. On dirait un vrai cliché pris sur le tapis rouge. Mes amis n'en reviennent pas !" },
+  { name: "FelixStrxu", city: "Nice", stars: 5, text: "Simple, rapide, bluffant. Ma photo avec Leonardo DiCaprio a fait un carton sur mes réseaux. Le pipeline IA est vraiment au top." },
   { name: "Saitawann.94", city: "Paris", stars: 5, text: "La vérité c'est rapide, qualité et le résultat est direct au rendez-vous !" },
 
 ];
@@ -47,13 +46,6 @@ const EXAMPLES_IMAGES = [
   { style: "Johnny Sins",      before: "/examples/johnny_avant.png", after: "/examples/johnny_apres.png", mobile: false, mobileFirst: false },
   { style: "Kylian Mbappé",      before: "/examples/kylian_avant.png", after: "/examples/kylian_apres.png", mobile: true, mobileFirst: true },
 
-];
-
-// Vidéos : remplis youtubeId OU localSrc (pas les deux)
-// localSrc : mets ta vidéo dans /public/videos/ et indique le chemin ex: "/videos/demo.mp4"
-const EXAMPLES_VIDEOS = [
-  { title: "En maillot de bain", youtubeId: null, localSrc: "/videos/maillot.mp4" },
-  { title: "Présentation de l'outfit",     youtubeId: null, localSrc: "/videos/outfit.mp4" },
 ];
 
 // ─── VIDÉO DÉMO (section sous le hero) ──────────────────────────────────────
@@ -85,13 +77,17 @@ const FAQ_ITEMS = [
 // Les premières de chaque liste sont celles visibles à l'ouverture du site
 // (ligne 1 défile vers la gauche, ligne 2 vers la droite).
 const ROW1 = [
-  "img35", "img36", "img37", "img38", "img39", "img40",
-  "img11", "img12", "img13", "img14", "img02", "img09",
-].map(n => `/hero-gallery/${n}.png`);
+  1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+].map(n => `/hero-gallery/${n}.jpeg`);
 const ROW2 = [
-  "img41", "img42", "img43", "img44", "img45", "img46",
-  "img31", "img32", "img33", "img21", "img23", "img24", "img25", "img27",
-].map(n => `/hero-gallery/${n}.png`);
+  11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+].map(n => `/hero-gallery/${n}.jpeg`);
+// 3e ligne affichée UNIQUEMENT sur téléphone. Elle reprend les images paires
+// des deux autres lignes, dans l'ordre inverse : rien n'est perdu sur
+// ordinateur, qui garde ses 2 lignes complètes.
+const ROW3 = [
+  20, 18, 16, 14, 12, 10, 8, 6, 4, 2,
+].map(n => `/hero-gallery/${n}.jpeg`);
 
 function ImageRow({
   images,
@@ -104,15 +100,19 @@ function ImageRow({
   const doubled = [...images, ...images];
 
   return (
-    <div className="overflow-hidden w-full">
-      <div className={direction === "left" ? "animate-scroll-left" : "animate-scroll-right"}
-        style={{ display: "flex", gap: "12px", width: "max-content" }}
+    /* shrink-0 : sans ça le conteneur flex écrase les lignes et elles se chevauchent */
+    <div className="overflow-hidden w-full shrink-0">
+      <div
+        className={`flex w-max gap-1.5 sm:gap-3 ${
+          direction === "left" ? "animate-scroll-left" : "animate-scroll-right"
+        }`}
       >
         {doubled.map((src, i) => (
           <div
             key={i}
-            className="flex-shrink-0 rounded-xl overflow-hidden"
-            style={{ width: 300, height: 500 }}
+            /* Tuiles réduites sur téléphone : les 3 lignes tiennent entièrement
+               dans le hero. Taille d'origine conservée sur ordinateur. */
+            className="flex-shrink-0 rounded-lg sm:rounded-xl overflow-hidden w-[100px] h-[167px] sm:w-[300px] sm:h-[500px]"
           >
             <Image
               src={src}
@@ -142,11 +142,15 @@ function HeroImageBackground() {
 
       {/* Lignes d'images depuis le haut */}
       <div
-        className="absolute inset-0 flex flex-col justify-start gap-4"
+        className="absolute inset-0 flex flex-col justify-start gap-2 sm:gap-4"
         style={{ opacity: 0.7 }}
       >
         <ImageRow images={ROW1} direction="left" />
         <ImageRow images={ROW2} direction="right" />
+        {/* 3e ligne : téléphone uniquement */}
+        <div className="sm:hidden shrink-0">
+          <ImageRow images={ROW3} direction="left" />
+        </div>
       </div>
 
       {/* ── Overlays pour lisibilité du texte ── */}
@@ -155,7 +159,8 @@ function HeroImageBackground() {
       {/* Fondu haut léger (navbar) */}
       <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-b from-background/70 to-transparent" />
       {/* Dégradé noir — couvre la moitié basse de la 2e ligne */}
-      <div className="absolute bottom-0 left-0 right-0 h-[320px] bg-gradient-to-t from-background from-40% via-background/80 to-transparent" />
+      {/* Dégradé bas — plus court sur téléphone pour laisser respirer la 3e ligne */}
+      <div className="absolute bottom-0 left-0 right-0 h-[200px] sm:h-[320px] bg-gradient-to-t from-background from-40% via-background/80 to-transparent" />
       {/* Fondu gauche */}
       <div className="absolute top-0 bottom-0 left-0 w-24 bg-gradient-to-r from-background to-transparent" />
       {/* Fondu droite */}
@@ -164,9 +169,111 @@ function HeroImageBackground() {
   );
 }
 
+/**
+ * Bouton « Essayer gratuitement » animé.
+ * Le halo est décalé vers l'extérieur et l'anneau clair détache le bouton du
+ * fond : le texte reste lisible par-dessus les images de la galerie.
+ */
+function AnimatedCta({
+  className = "",
+  fullWidth = false,
+}: {
+  className?: string;
+  fullWidth?: boolean;
+}) {
+  return (
+    <div className={`relative ${fullWidth ? "w-full" : "inline-block"}`}>
+      {/* Halo diffus, décalé vers l'extérieur pour ne pas voiler le texte */}
+      <motion.div
+        aria-hidden
+        className="absolute -inset-1.5 rounded-2xl bg-accent-violet/40 blur-xl pointer-events-none"
+        animate={{ scale: [1, 1.18, 1], opacity: [0.5, 0.14, 0.5] }}
+        transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
+      />
+      {/* Anneau clair qui respire : détache le bouton du fond */}
+      <motion.div
+        aria-hidden
+        className="absolute -inset-px rounded-xl border-2 border-white/70 pointer-events-none"
+        animate={{ opacity: [0.75, 0.2, 0.75] }}
+        transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
+      />
+      {/* Battement lent, séparé du survol pour éviter tout à-coup */}
+      <motion.div
+        animate={{ scale: [1, 1.035, 1] }}
+        transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
+        className="relative"
+      >
+        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.96 }}>
+          <Link
+            href="/dashboard"
+            className={`btn-primary relative overflow-hidden font-bold tracking-wide flex items-center justify-center gap-2 group shadow-xl shadow-accent-violet/40 [text-shadow:0_1px_3px_rgba(0,0,0,0.5)] ${
+              fullWidth ? "w-full" : ""
+            } ${className}`}
+          >
+            {/* Reflet qui balaie le bouton par intermittence */}
+            <motion.span
+              aria-hidden
+              className="absolute inset-y-0 -left-1/4 w-1/4 -skew-x-12 bg-white/30 blur-md pointer-events-none"
+              animate={{ x: ["0%", "520%"] }}
+              transition={{ duration: 2.2, repeat: Infinity, repeatDelay: 1.8, ease: "easeInOut" }}
+            />
+            <span className="relative">Essayer gratuitement</span>
+            <ArrowRight className="relative w-5 h-5 group-hover:translate-x-1 transition-transform" />
+          </Link>
+        </motion.div>
+      </motion.div>
+    </div>
+  );
+}
+
+/**
+ * Bouton « Essayer gratuitement » collant — TÉLÉPHONE UNIQUEMENT.
+ * Tant que le bouton du hero est à l'écran, rien ne s'affiche. Dès que le
+ * visiteur le dépasse en scrollant, le bouton se pose sous la navbar et suit
+ * l'écran pour le reste de la page.
+ */
+function MobileStickyCta({ anchorRef }: { anchorRef: React.RefObject<HTMLDivElement | null> }) {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const update = () => {
+      const el = anchorRef.current;
+      if (!el) return;
+      // 64 px = hauteur de la navbar : on affiche dès que le bouton passe dessous.
+      setVisible(el.getBoundingClientRect().bottom < 64);
+    };
+
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, [anchorRef]);
+
+  return (
+    <AnimatePresence>
+      {visible && (
+        <motion.div
+          initial={{ y: -70, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: -70, opacity: 0 }}
+          transition={{ duration: 0.25, ease: "easeOut" }}
+          /* Sans fond : le bouton flotte au-dessus de la page, posé un peu plus
+             bas que la navbar pour ne pas la toucher. */
+          className="sm:hidden fixed top-[76px] left-0 right-0 z-40 px-4"
+        >
+          <AnimatedCta fullWidth className="py-3 text-base" />
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
 function ReviewsMarquee() {
   return (
-    <div className="relative overflow-hidden py-4">
+    <div className="relative overflow-hidden py-0.5 sm:py-4">
       {/* Fade gauche */}
       <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none" />
       {/* Fade droite */}
@@ -179,29 +286,29 @@ function ReviewsMarquee() {
         {[...REVIEWS, ...REVIEWS].map((review, i) => (
           <div
             key={i}
-            className="w-80 flex-shrink-0 card border border-surface-border p-5 rounded-2xl"
+            className="w-56 sm:w-80 flex-shrink-0 card border border-surface-border p-2.5 sm:p-5 rounded-2xl"
           >
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-2 sm:mb-3">
               <div className="flex gap-1">
                 {Array.from({ length: review.stars }).map((_, s) => (
-                  <Star key={s} className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
+                  <Star key={s} className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-yellow-400 text-yellow-400" />
                 ))}
                 {Array.from({ length: 5 - review.stars }).map((_, s) => (
-                  <Star key={s} className="w-3.5 h-3.5 text-white/20" />
+                  <Star key={s} className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white/20" />
                 ))}
               </div>
               <Quote className="w-4 h-4 text-accent-violet/40" />
             </div>
-            <p className="text-white/70 text-sm leading-relaxed mb-4 line-clamp-3">
+            <p className="text-white/70 text-[11px] sm:text-sm leading-relaxed mb-2 sm:mb-4 line-clamp-2 sm:line-clamp-3">
               &ldquo;{review.text}&rdquo;
             </p>
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-full bg-gradient-violet-neon flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+            <div className="flex items-center gap-2 sm:gap-2.5">
+              <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gradient-violet-neon flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                 {review.name.charAt(0)}
               </div>
               <div>
-                <p className="text-white font-medium text-sm leading-none">{review.name}</p>
-                <p className="text-white/40 text-xs mt-0.5">{review.city}</p>
+                <p className="text-white font-medium text-xs sm:text-sm leading-none">{review.name}</p>
+                <p className="text-white/40 text-[10px] sm:text-xs mt-0.5">{review.city}</p>
               </div>
             </div>
           </div>
@@ -219,126 +326,60 @@ function ReviewsMarquee() {
 }
 
 function ExamplesGallery() {
-  const [tab, setTab] = useState<"images" | "videos">("images");
+  // Sur téléphone, seuls les exemples marqués `mobile` sont affichés au départ ;
+  // « Voir plus » révèle les autres. Sur ordinateur, tout est visible d'emblée.
+  const [showAll, setShowAll] = useState(false);
+  const hiddenOnMobile = EXAMPLES_IMAGES.filter((ex) => !ex.mobile).length;
 
   return (
     <div>
-      {/* Onglets */}
-      <div className="flex justify-center gap-2 mb-10">
-        {[
-          { id: "images" as const, label: "Photos", icon: <ImageIcon className="w-4 h-4" /> },
-          { id: "videos" as const, label: "Vidéos", icon: <Film className="w-4 h-4" /> },
-        ].map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
-              tab === t.id
-                ? "bg-accent-violet text-white shadow-violet"
-                : "bg-surface border border-surface-border text-white/50 hover:text-white hover:border-accent-violet/40"
-            }`}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
+        {EXAMPLES_IMAGES.map((ex, i) => (
+          <motion.div
+            key={ex.style}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: i * 0.06 }}
+            className={`group relative rounded-2xl overflow-hidden border border-surface-border hover:border-accent-violet/50 transition-all duration-300 ${
+              ex.mobile || showAll ? "" : "hidden sm:block"
+            } ${ex.mobileFirst ? "order-first sm:order-none" : ""}`}
+            style={{ aspectRatio: "9/16" }}
           >
-            {t.icon}
-            {t.label}
-          </button>
+            {ex.before && ex.after ? (
+              <BeforeAfterSlider before={ex.before} after={ex.after} alt={ex.style} />
+            ) : (
+              /* Placeholder jusqu'à avoir de vraies images */
+              <div className="w-full h-full bg-surface-hover flex flex-col items-center justify-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-gradient-violet-neon flex items-center justify-center text-white font-bold text-lg">
+                  {ex.style.charAt(0)}
+                </div>
+                <p className="text-white/30 text-xs text-center px-4">
+                  Image exemple<br />{ex.style}
+                </p>
+                <p className="text-white/15 text-xs">/public/examples/</p>
+              </div>
+            )}
+
+            <div className="absolute bottom-0 left-0 right-0 p-2 sm:p-3 bg-gradient-to-t from-black/70 to-transparent pointer-events-none">
+              <p className="text-white text-xs sm:text-sm font-medium">{ex.style}</p>
+            </div>
+          </motion.div>
         ))}
       </div>
 
-      <AnimatePresence mode="wait">
-        {tab === "images" ? (
-          <motion.div
-            key="images"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.3 }}
-            className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3"
+      {/* « Voir plus » — téléphone uniquement : sur ordinateur, tous les
+          exemples sont déjà affichés. */}
+      {!showAll && hiddenOnMobile > 0 && (
+        <div className="sm:hidden text-center mt-3">
+          <button
+            onClick={() => setShowAll(true)}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-surface-border bg-surface text-white/70 text-xs font-medium transition-colors hover:text-white hover:border-accent-violet/40 active:scale-95"
           >
-            {EXAMPLES_IMAGES.map((ex, i) => (
-              <motion.div
-                key={ex.style}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: i * 0.06 }}
-                className={`group relative rounded-2xl overflow-hidden border border-surface-border hover:border-accent-violet/50 transition-all duration-300 ${ex.mobile ? "" : "hidden sm:block"} ${ex.mobileFirst ? "order-first sm:order-none" : ""}`} style={{ aspectRatio: "9/16" }}
-              >
-                {ex.before && ex.after ? (
-                  <BeforeAfterSlider before={ex.before} after={ex.after} alt={ex.style} />
-                ) : (
-                  /* Placeholder jusqu'à avoir de vraies images */
-                  <div className="w-full h-full bg-surface-hover flex flex-col items-center justify-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-gradient-violet-neon flex items-center justify-center text-white font-bold text-lg">
-                      {ex.style.charAt(0)}
-                    </div>
-                    <p className="text-white/30 text-xs text-center px-4">
-                      Image exemple<br />{ex.style}
-                    </p>
-                    <p className="text-white/15 text-xs">/public/examples/</p>
-                  </div>
-                )}
-
-                <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/70 to-transparent pointer-events-none">
-                  <p className="text-white text-sm font-medium">{ex.style}</p>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
-        ) : (
-          <motion.div
-            key="videos"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.3 }}
-            className="grid grid-cols-1 md:grid-cols-2 gap-6"
-          >
-            {EXAMPLES_VIDEOS.map((vid, i) => (
-              <motion.div
-                key={vid.title}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: i * 0.1 }}
-                className="rounded-2xl overflow-hidden border border-surface-border"
-              >
-                <div className="bg-surface-hover relative group" style={{ aspectRatio: "9/16" }}>
-                  {vid.youtubeId ? (
-                    <iframe
-                      src={`https://www.youtube.com/embed/${vid.youtubeId}?rel=0`}
-                      title={vid.title}
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                      className="w-full h-full"
-                    />
-                  ) : vid.localSrc ? (
-                    <video
-                      src={vid.localSrc}
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
-                      className="w-full h-full object-cover pointer-events-none"
-                    />
-                  ) : (
-                    /* Placeholder vidéo */
-                    <div className="w-full h-full flex flex-col items-center justify-center gap-4">
-                      <div className="w-16 h-16 rounded-full bg-accent-violet/20 border border-accent-violet/40 flex items-center justify-center group-hover:bg-accent-violet/30 transition-colors">
-                        <Play className="w-7 h-7 text-accent-violet fill-accent-violet ml-1" />
-                      </div>
-                      <div className="text-center">
-                        <p className="text-white/40 text-sm">Vidéo de démonstration</p>
-                        <p className="text-white/20 text-xs mt-1">Ajoutez localSrc dans EXAMPLES_VIDEOS</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <div className="p-4 bg-surface">
-                  <p className="font-medium text-white">{vid.title}</p>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
+            Voir plus ({hiddenOnMobile})
+            <ChevronDown className="w-4 h-4" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -351,7 +392,7 @@ function DemoVideoSection() {
   const videoInView  = useInView(videoZoneRef, { once: true, margin: "300px" });
 
   return (
-    <section id="demo" className="py-24 px-4 sm:px-6 relative overflow-hidden">
+    <section id="demo" className="py-4 sm:py-24 px-4 sm:px-6 relative overflow-hidden">
       {/* Orbes décoratifs */}
       <motion.div
         className="absolute -top-20 left-1/4 w-80 h-80 rounded-full bg-accent-violet/12 blur-3xl pointer-events-none"
@@ -369,16 +410,16 @@ function DemoVideoSection() {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-10"
+          className="text-center mb-3 sm:mb-10"
         >
-          <span className="inline-flex items-center gap-2 bg-accent-violet/10 border border-accent-violet/30 text-accent-violet text-sm font-semibold px-4 py-2 rounded-full mb-6">
+          <span className="inline-flex items-center gap-2 bg-accent-violet/10 border border-accent-violet/30 text-accent-violet text-xs sm:text-sm font-semibold px-3 sm:px-4 py-1.5 sm:py-2 rounded-full mb-4 sm:mb-6">
             <Play className="w-4 h-4 fill-current" />
             Démonstration
           </span>
-          <h2 className="text-4xl sm:text-5xl font-bold mb-4">
+          <h2 className="text-lg sm:text-5xl font-bold mb-1.5 sm:mb-4">
             Voyez la magie <span className="gradient-text">en action</span>
           </h2>
-          <p className="text-white/50 text-lg max-w-xl mx-auto">
+          <p className="text-white/50 text-xs sm:text-lg max-w-xl mx-auto">
             De la photo originale au résultat final : découvrez AstraCrea en vidéo
           </p>
         </motion.div>
@@ -424,10 +465,10 @@ function DemoVideoSection() {
 
 function SnapRougeTutoSection() {
   return (
-    <section className="py-12 px-4 sm:px-6 relative overflow-hidden">
+    <section className="py-4 sm:py-12 px-4 sm:px-6 relative overflow-hidden">
       {/* Ambiance rouge */}
       <motion.div
-        className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[300px] rounded-full bg-red-500/8 blur-[100px] pointer-events-none"
+        className="absolute top-0 left-1/2 -translate-x-1/2 w-[300px] sm:w-[500px] h-[180px] sm:h-[300px] rounded-full bg-red-500/8 blur-[100px] pointer-events-none"
         animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }}
         transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
       />
@@ -438,34 +479,34 @@ function SnapRougeTutoSection() {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-8"
+          className="text-center mb-2.5 sm:mb-8"
         >
-          <span className="inline-flex items-center gap-2 bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-semibold px-3 py-1.5 rounded-full mb-4">
+          <span className="inline-flex items-center gap-2 bg-red-500/10 border border-red-500/30 text-red-400 text-[10px] sm:text-xs font-semibold px-2 sm:px-3 py-0.5 sm:py-1.5 rounded-full mb-2 sm:mb-4">
             <Flame className="w-3.5 h-3.5" />
             Tuto Snapchat
           </span>
-          <h2 className="text-2xl sm:text-3xl font-bold mb-3">
+          <h2 className="text-base sm:text-3xl font-bold mb-1.5 sm:mb-3">
             Envoyer un <span className="text-red-500">Snap Rouge</span> 🔥
           </h2>
-          <p className="text-white/50 text-base max-w-2xl mx-auto">
+          <p className="text-white/50 text-[11px] sm:text-base max-w-2xl mx-auto">
             Envoyez vos créations IA comme de vrais Snaps pris sur le moment —
             la technique complète en vidéo vous attend dans votre Dashboard.
           </p>
         </motion.div>
 
         {/* Snap violet vs Snap Rouge */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-4 max-w-3xl mx-auto mb-2.5 sm:mb-6">
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            className="rounded-2xl border border-surface-border bg-surface p-4"
+            className="rounded-2xl border border-surface-border bg-surface p-2.5 sm:p-4"
           >
-            <div className="flex items-center gap-3 mb-3">
-              <span className="w-8 h-8 rounded-lg bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-base">💜</span>
-              <p className="font-black text-base text-white/70">Snap violet</p>
+            <div className="flex items-center gap-2.5 sm:gap-3 mb-2 sm:mb-3">
+              <span className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-xs sm:text-base">💜</span>
+              <p className="font-black text-sm sm:text-base text-white/70">Snap violet</p>
             </div>
-            <p className="text-white/45 text-xs leading-relaxed">
+            <p className="text-white/45 text-[10px] sm:text-xs leading-relaxed">
               Une photo envoyée depuis la galerie apparaît en <strong className="text-white/70">violet</strong> :
               tout le monde voit immédiatement que ce n&apos;est pas une photo prise sur le moment.
               L&apos;effet de surprise est ruiné.
@@ -475,14 +516,14 @@ function SnapRougeTutoSection() {
             initial={{ opacity: 0, x: 20 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            className="rounded-2xl border border-red-500/40 bg-red-500/5 p-4 relative overflow-hidden"
+            className="rounded-2xl border border-red-500/40 bg-red-500/5 p-2.5 sm:p-4 relative overflow-hidden"
           >
             <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-red-500/15 blur-2xl pointer-events-none" />
-            <div className="flex items-center gap-3 mb-3 relative">
-              <span className="w-8 h-8 rounded-lg bg-red-500/15 border border-red-500/30 flex items-center justify-center text-base">🔴</span>
-              <p className="font-black text-base text-red-400">Snap Rouge</p>
+            <div className="flex items-center gap-2.5 sm:gap-3 mb-2 sm:mb-3 relative">
+              <span className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-red-500/15 border border-red-500/30 flex items-center justify-center text-xs sm:text-base">🔴</span>
+              <p className="font-black text-sm sm:text-base text-red-400">Snap Rouge</p>
             </div>
-            <p className="text-white/55 text-xs leading-relaxed relative">
+            <p className="text-white/55 text-[10px] sm:text-xs leading-relaxed relative">
               Avec notre technique, votre création IA part en <strong className="text-red-400">Snap Rouge</strong> —
               exactement comme une photo prise en direct avec l&apos;appareil photo.
               Effet garanti auprès de vos amis. 🔥
@@ -490,41 +531,19 @@ function SnapRougeTutoSection() {
           </motion.div>
         </div>
 
-        {/* Étapes */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-3xl mx-auto mb-6">
-          {[
-            { step: "01", title: "Créez votre photo IA", desc: "Générez votre transformation sur AstraCrea et téléchargez-la en haute qualité" },
-            { step: "02", title: "Débloquez la technique", desc: "Guide vidéo complet, étape par étape — iPhone et Android" },
-            { step: "03", title: "Envoyez en Snap Rouge", desc: "Votre photo part comme un vrai Snap pris sur le moment" },
-          ].map((item, i) => (
-            <motion.div
-              key={item.step}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.1 }}
-              className="rounded-2xl border border-surface-border bg-surface p-4 relative overflow-hidden"
-            >
-              <span className="text-3xl font-black text-red-500/15 absolute top-2 right-3">{item.step}</span>
-              <h3 className="font-bold text-white text-sm mb-1.5 relative">{item.title}</h3>
-              <p className="text-white/45 text-xs leading-relaxed relative">{item.desc}</p>
-            </motion.div>
-          ))}
-        </div>
-
         {/* Ce que vous obtenez */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="flex flex-wrap justify-center gap-2 max-w-3xl mx-auto mb-8"
+          className="flex flex-wrap justify-center gap-1 sm:gap-2 max-w-3xl mx-auto mb-2.5 sm:mb-8"
         >
           {[
             "Vidéo exclusive de la technique",
             "Fonctionne sur iPhone et Android",
             "Accès à vie — payez une seule fois",
           ].map(label => (
-            <span key={label} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/25 text-red-400 text-xs font-medium">
+            <span key={label} className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full bg-red-500/10 border border-red-500/25 text-red-400 text-[10px] sm:text-xs font-medium">
               <Check className="w-3.5 h-3.5 flex-shrink-0" />
               {label}
             </span>
@@ -540,13 +559,13 @@ function SnapRougeTutoSection() {
         >
           <Link
             href="/dashboard?view=snaprouge"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold text-base transition-all shadow-lg shadow-red-500/25 hover:scale-[1.03] active:scale-[0.97]"
+            className="inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold text-xs sm:text-base transition-all shadow-lg shadow-red-500/25 hover:scale-[1.03] active:scale-[0.97]"
           >
             <Flame className="w-4 h-4" />
             Débloquer la technique complète
             <ArrowRight className="w-4 h-4" />
           </Link>
-          <p className="text-white/30 text-xs mt-3">
+          <p className="text-white/30 text-[10px] sm:text-xs mt-2 sm:mt-3">
             Inclus avec les abonnements <span className="text-accent-violet font-semibold">Pro</span> et{" "}
             <span className="text-amber-400 font-semibold">Elite</span>, ou en accès unique
           </p>
@@ -560,7 +579,7 @@ function FaqAccordion() {
   const [open, setOpen] = useState<number | null>(null);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-1.5 sm:space-y-3">
       {FAQ_ITEMS.map((item, i) => {
         const isOpen = open === i;
         return (
@@ -576,13 +595,13 @@ function FaqAccordion() {
           >
             <button
               onClick={() => setOpen(isOpen ? null : i)}
-              className="w-full flex items-center justify-between px-5 py-3.5 text-left group"
+              className="w-full flex items-center justify-between px-3.5 sm:px-5 py-2.5 sm:py-3.5 text-left group"
             >
-              <span className={`font-semibold text-sm transition-colors ${isOpen ? "text-white" : "text-white/80 group-hover:text-white"}`}>
+              <span className={`font-semibold text-xs sm:text-sm transition-colors ${isOpen ? "text-white" : "text-white/80 group-hover:text-white"}`}>
                 {item.q}
               </span>
               <ChevronDown
-                className={`w-5 h-5 flex-shrink-0 ml-4 transition-all duration-300 ${
+                className={`w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 ml-3 sm:ml-4 transition-all duration-300 ${
                   isOpen ? "rotate-180 text-accent-violet" : "text-white/30 group-hover:text-white/60"
                 }`}
               />
@@ -595,7 +614,7 @@ function FaqAccordion() {
                   exit={{ height: 0, opacity: 0 }}
                   transition={{ duration: 0.25, ease: "easeInOut" }}
                 >
-                  <p className="px-5 pb-4 text-white/60 leading-relaxed text-sm">
+                  <p className="px-3.5 sm:px-5 pb-3 sm:pb-4 text-white/60 leading-relaxed text-[11px] sm:text-sm">
                     {item.a}
                   </p>
                 </motion.div>
@@ -611,21 +630,26 @@ function FaqAccordion() {
 // ─── PAGE PRINCIPALE ────────────────────────────────────────────────────────
 
 export default function HomePage() {
+  // Repère du bouton « Essayer gratuitement » du hero : sert à déclencher
+  // la version collante sur téléphone une fois qu'on l'a dépassé.
+  const heroCtaRef = useRef<HTMLDivElement>(null);
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
+      <MobileStickyCta anchorRef={heroCtaRef} />
 
       {/* ══ HERO ══════════════════════════════════════════════════════════ */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+      <section className="order-1 sm:order-none relative min-h-[70vh] sm:min-h-screen flex items-center justify-center overflow-hidden">
         <HeroImageBackground />
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-32 text-center">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-20 pb-8 sm:py-32 text-center">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <span className="inline-flex items-center gap-2 bg-accent-violet/10 border border-accent-violet/30 text-accent-violet text-sm font-medium px-4 py-2 rounded-full mb-8">
+            <span className="inline-flex items-center gap-2 bg-accent-violet/10 border border-accent-violet/30 text-accent-violet text-xs sm:text-sm font-medium px-3 sm:px-4 py-1.5 sm:py-2 rounded-full mb-4 sm:mb-8">
               <Sparkles className="w-4 h-4" />
               Technologie IA de pointe
             </span>
@@ -635,7 +659,7 @@ export default function HomePage() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-5xl sm:text-7xl lg:text-8xl font-black leading-tight mb-6"
+            className="text-[1.6rem] sm:text-7xl lg:text-8xl font-black leading-tight mb-3 sm:mb-6"
           >
             Fake It{" "}
             <span className="gradient-text">Until You</span>
@@ -647,32 +671,20 @@ export default function HomePage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-xl sm:text-2xl text-white/60 max-w-2xl mx-auto mb-12"
+            className="text-xs sm:text-2xl text-white/60 max-w-2xl mx-auto mb-6 sm:mb-12"
           >
-            Photos avec des célébrités, tenues et montres de luxe :
-            montrez la vie que vous voulez. Résultats 4K ultra-réalistes
-            en moins de 30 secondes.
+            Photos avec les célébrités et les personnalités que vous admirez :
+            montrez la vie que vous voulez.
           </motion.p>
 
           <motion.div
+            ref={heroCtaRef}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16"
+            className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-8 sm:mb-16"
           >
-            <div className="relative">
-              <motion.div
-                className="absolute inset-0 rounded-xl bg-accent-violet/50 blur-lg pointer-events-none"
-                animate={{ scale: [1, 1.25, 1], opacity: [0.55, 0.15, 0.55] }}
-                transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
-              />
-              <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }} className="relative">
-                <Link href="/dashboard" className="btn-primary text-lg px-8 py-4 flex items-center gap-2 group">
-                  Essayer gratuitement
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </Link>
-              </motion.div>
-            </div>
+            <AnimatedCta className="text-base sm:text-lg px-7 sm:px-9 py-3 sm:py-4" />
             <motion.div
               whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.96 }}
@@ -689,12 +701,12 @@ export default function HomePage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
-            className="grid grid-cols-2 sm:grid-cols-4 gap-6 max-w-2xl mx-auto"
+            className="grid grid-cols-3 gap-3 sm:gap-6 max-w-xs sm:max-w-xl mx-auto"
           >
             {STATS.map((stat) => (
               <div key={stat.label} className="text-center">
-                <div className="text-3xl font-black gradient-text">{stat.value}</div>
-                <div className="text-white/50 text-sm mt-1">{stat.label}</div>
+                <div className="text-xl sm:text-3xl font-black gradient-text">{stat.value}</div>
+                <div className="text-white/50 text-[11px] sm:text-sm mt-0.5 sm:mt-1">{stat.label}</div>
               </div>
             ))}
           </motion.div>
@@ -702,10 +714,13 @@ export default function HomePage() {
       </section>
 
       {/* ══ VIDÉO DÉMO ═══════════════════════════════════════════════════ */}
-      <DemoVideoSection />
+      {/* Téléphone : passe après les exemples de transformations */}
+      <div className="order-3 sm:order-none">
+        <DemoVideoSection />
+      </div>
 
       {/* ══ SÉPARATEUR ANIMÉ HERO → AVIS ════════════════════════════════ */}
-      <div className="relative h-28 overflow-hidden pointer-events-none select-none">
+      <div className="order-4 sm:order-none relative h-6 sm:h-28 overflow-hidden pointer-events-none select-none">
         {/* Ligne lumineuse */}
         <motion.div
           className="absolute top-1/2 left-0 right-0 h-px"
@@ -743,23 +758,23 @@ export default function HomePage() {
       </div>
 
       {/* ══ AVIS CLIENTS ══════════════════════════════════════════════════ */}
-      <section className="py-20 overflow-hidden">
+      <section className="order-5 sm:order-none py-4 sm:py-20 overflow-hidden">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-12 px-4"
+          className="text-center mb-3 sm:mb-12 px-4"
         >
-          <div className="flex items-center justify-center gap-1 mb-3">
+          <div className="flex items-center justify-center gap-1 mb-2 sm:mb-3">
             {Array.from({ length: 5 }).map((_, i) => (
-              <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+              <Star key={i} className="w-3.5 h-3.5 sm:w-5 sm:h-5 fill-yellow-400 text-yellow-400" />
             ))}
-            <span className="ml-2 text-white/60 text-sm font-medium">4,9 / 5 — 2 300+ avis</span>
+            <span className="ml-2 text-white/60 text-xs sm:text-sm font-medium">4,9 / 5 — 2 300+ avis</span>
           </div>
-          <h2 className="text-4xl sm:text-5xl font-bold mb-3">
+          <h2 className="text-lg sm:text-5xl font-bold mb-1.5 sm:mb-3">
             Ils ont essayé, ils ont <span className="gradient-text">adoré</span>
           </h2>
-          <p className="text-white/50 text-lg max-w-xl mx-auto">
+          <p className="text-white/50 text-xs sm:text-lg max-w-xl mx-auto">
             Des milliers d&apos;utilisateurs transforment leurs photos chaque jour
           </p>
         </motion.div>
@@ -768,7 +783,7 @@ export default function HomePage() {
       </section>
 
       {/* ══ GALERIE EXEMPLES ══════════════════════════════════════════════ */}
-      <section className="py-24 px-4 sm:px-6 relative overflow-hidden">
+      <section className="order-2 sm:order-none py-4 sm:py-24 px-4 sm:px-6 relative overflow-hidden">
         {/* Fond teinté */}
         <div className="absolute inset-0 bg-surface/20 pointer-events-none" />
         {/* Orbe violet haut-gauche */}
@@ -794,13 +809,13 @@ export default function HomePage() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mb-12"
+            className="text-center mb-3 sm:mb-12"
           >
-            <h2 className="text-4xl sm:text-5xl font-bold mb-4">
+            <h2 className="text-lg sm:text-5xl font-bold mb-1.5 sm:mb-4">
               Exemples de <span className="gradient-text">transformations</span>
             </h2>
-            <p className="text-white/50 text-lg max-w-xl mx-auto">
-              Passez la souris sur les photos pour voir la transformation. Regardez les vidéos pour voir en action - en cours d'amélioration.
+            <p className="text-white/50 text-xs sm:text-lg max-w-xl mx-auto">
+              La barre glisse toute seule pour révéler la transformation — attrapez-la pour comparer à votre rythme.
             </p>
           </motion.div>
 
@@ -810,7 +825,7 @@ export default function HomePage() {
             initial={{ opacity: 0, y: 10 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mt-10"
+            className="text-center mt-4 sm:mt-10"
           >
             <Link href="/upload" className="btn-primary inline-flex items-center gap-2">
               <Sparkles className="w-4 h-4" />
@@ -821,18 +836,18 @@ export default function HomePage() {
       </section>
 
       {/* ══ FAQ ═══════════════════════════════════════════════════════════ */}
-      <section className="py-12 px-4 sm:px-6 bg-surface/20">
+      <section className="order-6 sm:order-none py-4 sm:py-12 px-4 sm:px-6 bg-surface/20">
         <div className="max-w-2xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mb-8"
+            className="text-center mb-2.5 sm:mb-8"
           >
-            <h2 className="text-2xl sm:text-3xl font-bold mb-2">
+            <h2 className="text-base sm:text-3xl font-bold mb-1.5 sm:mb-2">
               Questions <span className="gradient-text">fréquentes</span>
             </h2>
-            <p className="text-white/50 text-base">
+            <p className="text-white/50 text-[11px] sm:text-base">
               Tout ce que vous devez savoir avant de commencer
             </p>
           </motion.div>
@@ -843,7 +858,7 @@ export default function HomePage() {
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
-            className="text-center text-white/40 text-sm mt-8"
+            className="text-center text-white/40 text-[11px] sm:text-sm mt-3 sm:mt-8"
           >
             Une autre question ?{" "}
             <a href="mailto:contact@riseandclose.co" className="text-accent-violet hover:underline">
@@ -854,9 +869,13 @@ export default function HomePage() {
       </section>
 
       {/* ══ TUTO SNAP ROUGE ══════════════════════════════════════════════ */}
-      <SnapRougeTutoSection />
+      <div className="order-7 sm:order-none">
+        <SnapRougeTutoSection />
+      </div>
 
-      <Footer />
+      <div className="order-8 sm:order-none">
+        <Footer />
+      </div>
     </div>
   );
 }
