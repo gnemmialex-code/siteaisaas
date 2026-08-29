@@ -318,7 +318,7 @@ const PLANS_DATA = [
       { t: "Vitesse standard ~45-60s", strong: true },
       { t: "Photo uniquement (pas de vidéo, pas de SwapFace)" },
       { t: "8 styles disponibles" },
-      { t: "Historique conservé 72h" },
+      { t: "Historique conservé 48h" },
       { t: "Support standard 48-72h" },
     ],
   },
@@ -334,7 +334,7 @@ const PLANS_DATA = [
       { t: "Photo + SwapFace + Vidéo jusqu'à 5s", strong: true },
       { t: "🔥 Technique Snap Rouge incluse" },
       { t: "13 styles dont 5 exclusifs Pro" },
-      { t: "Historique conservé 72h" },
+      { t: "Historique conservé 48h" },
       { t: "Support prioritaire 24h" },
     ],
   },
@@ -350,7 +350,7 @@ const PLANS_DATA = [
       { t: "Photo + SwapFace + Vidéo 4K jusqu'à 30s", strong: true },
       { t: "🔥 Technique Snap Rouge incluse" },
       { t: "Tous les styles + 3 exclusifs Elite" },
-      { t: "Historique conservé 72h" },
+      { t: "Historique conservé 48h" },
       { t: "Manager dédié + API illimitée" },
     ],
   },
@@ -1783,12 +1783,12 @@ export default function DashboardPage() {
                         </div>
                       )}
                     </div>
-                    {/* ── Rétention 72h — bien visible ── */}
+                    {/* ── Rétention 48h — bien visible ── */}
                     <div className="mt-3 flex items-center gap-3 bg-amber-400/10 border border-amber-400/40 rounded-xl px-4 py-3">
                       <Clock className="w-4 h-4 text-amber-400 flex-shrink-0" />
                       <p className="text-white/60 text-xs leading-relaxed">
-                        <strong className="text-amber-400">Conservation limitée à 72h</strong> — chaque image est{" "}
-                        <strong className="text-white">automatiquement supprimée 72 heures</strong> après sa création.
+                        <strong className="text-amber-400">Conservation limitée à 48h</strong> — chaque image est{" "}
+                        <strong className="text-white">automatiquement supprimée 48 heures</strong> après sa création.
                         Pensez à <strong className="text-white">télécharger vos créations</strong> pour les garder !
                       </p>
                     </div>
@@ -1833,12 +1833,12 @@ export default function DashboardPage() {
                             <p className="text-white text-xs font-medium truncate">{gen.style}</p>
                             <p className="text-white/50 text-xs">{new Date(gen.created_at).toLocaleDateString("fr-FR")}</p>
                           </div>
-                          {/* Compte à rebours avant suppression (rétention 72h) */}
+                          {/* Compte à rebours avant suppression (rétention 48h) */}
                           {(() => {
-                            const hoursLeft = Math.max(0, Math.ceil(72 - (Date.now() - new Date(gen.created_at).getTime()) / 3_600_000));
+                            const hoursLeft = Math.max(0, Math.ceil(48 - (Date.now() - new Date(gen.created_at).getTime()) / 3_600_000));
                             return (
                               <span className={`absolute top-1.5 right-1.5 z-20 flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold backdrop-blur-sm border ${
-                                hoursLeft <= 12 ? "bg-red-500/30 border-red-500/50 text-red-300" : "bg-black/50 border-white/15 text-white/70"
+                                hoursLeft <= 8 ? "bg-red-500/30 border-red-500/50 text-red-300" : "bg-black/50 border-white/15 text-white/70"
                               }`}>
                                 <Clock className="w-2.5 h-2.5" />
                                 {hoursLeft}h
