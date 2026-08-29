@@ -11,6 +11,7 @@ import { useState } from "react";
 // iPhone 16 : 393 × 852 pt (logique), iPhone 16 Pro Max : 440 × 956
 const DEVICES = [
   { id: "16", name: "iPhone 16", w: 393, h: 852 },
+  { id: "16plus", name: "iPhone 16 Plus", w: 430, h: 932 },
   { id: "16pro", name: "iPhone 16 Pro", w: 402, h: 874 },
   { id: "16promax", name: "iPhone 16 Pro Max", w: 440, h: 956 },
   { id: "se", name: "iPhone SE", w: 375, h: 667 },

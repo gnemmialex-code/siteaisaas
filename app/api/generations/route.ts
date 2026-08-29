@@ -12,8 +12,8 @@ export async function GET() {
     return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
   }
 
-  // Rétention 72h : purge les générations expirées avant de renvoyer l'historique
-  const cutoff = new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString();
+  // Rétention 48h : purge les générations expirées avant de renvoyer l'historique
+  const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
   await supabase
     .from("generations")
     .delete()
