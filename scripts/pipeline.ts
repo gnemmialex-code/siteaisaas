@@ -61,6 +61,11 @@ export const ZIMAGE_DIMS: Record<string, { width: number; height: number }> = {
 // format         → jpg for lossy compression, png lossless for ultra
 // maxRefImages   → max celeb reference photos passed to the model
 // allowFallback  → Replicate may route to a faster/cheaper model variant
+// Le plan ne fait varier QUE la resolution, le format de sortie, le repli
+// modele et le nombre de photos de reference celebrite autorisees.
+// Les regles de generation (image de base intouchee + integration physique de
+// la personne ajoutee) sont identiques pour free / essentiel / pro / ultra :
+// voir BASE_IMAGE_LOCK et ADDED_PERSON_INTEGRATION plus bas.
 const QUALITY_SETTINGS = {
   free:      { format: "jpg" as const, resolution: "1K", maxRefImages: 0, allowFallback: true  },
   essentiel: { format: "jpg" as const, resolution: "1K", maxRefImages: 1, allowFallback: true  },
@@ -290,6 +295,134 @@ const HIDDEN_SYSTEM_CONTEXT =
   "Professional composition: subject as clear visual anchor, scene as supporting environment. " +
   "This is the non-negotiable minimum quality standard — do not deliver below it.";
 
+// ─── REGLES UNIVERSELLES — IDENTIQUES POUR TOUTES LES FORMULES ───────────
+//
+// Ces deux blocs sont injectes dans CHAQUE generation image, quel que soit
+// l'abonnement (free / essentiel / pro / ultra). Le plan ne fait varier que la
+// resolution, le format et le nombre de photos de reference — jamais ces regles.
+//
+//   1. BASE_IMAGE_LOCK          → l'image de base n'est jamais modifiee
+//   2. ADDED_PERSON_INTEGRATION → la personne ajoutee est integree
+//      physiquement : lumiere, orientation de la lumiere, orientation de la
+//      personne, decor, volume 3D, textures realistes, photorealisme total.
+
+const BASE_IMAGE_LOCK =
+  "NON-NEGOTIABLE BASE IMAGE LOCK — THIS RULE APPLIES TO EVERY REQUEST, WITHOUT ANY EXCEPTION: " +
+  "The input photograph (image 1) is a FINISHED, FROZEN CANVAS. " +
+  "It must never be regenerated, re-rendered, repainted, re-lit, re-framed, re-cropped, re-colored, " +
+  "retouched, denoised, sharpened, upscaled, stylised or beautified. Treat every pixel of image 1 as already final. " +
+  "The person already present in image 1 keeps, pixel for pixel and without the slightest deviation: " +
+  "their face and every facial feature, their exact skin tone and skin texture, their hair color, cut and texture, " +
+  "their body shape and proportions, their clothing and every fold of it, their pose, their expression, " +
+  "their gaze direction, their position in the frame and their scale in the frame. " +
+  "The existing background, decor, furniture, objects, colors, exposure, white balance, contrast, grain " +
+  "and depth of field of image 1 also stay exactly as they are, unless the user explicitly asked for the scene to change. " +
+  "You are performing an ADDITION, never a re-creation: the output must read as the ORIGINAL photograph " +
+  "with only the requested element inserted into it, and strictly nothing else changed. " +
+  "If you cannot insert the requested element without touching the original, insert it into the free space of the frame — " +
+  "never by modifying, moving, shrinking, rotating or redrawing what is already there. " +
+  "This lock is independent of the requested quality, resolution or subscription plan: it is always in force. ";
+
+const ADDED_PERSON_INTEGRATION =
+  "ADDED PERSON — PHYSICAL INTEGRATION SPECIFICATION (mandatory, applies to every request without exception): " +
+  "The added person must look as if they were really standing there, at that exact spot and that exact moment, " +
+  "photographed by the same camera, in the same light, as the original subject. " +
+
+  "STEP A · READ THE LIGHT OF IMAGE 1 FIRST. " +
+  "Before rendering anything, analyse the lighting of the base photo: " +
+  "locate the key light in 3D (left or right, front or back, above or below, near or far), " +
+  "measure its color temperature (warm tungsten or candle, neutral daylight, cool shade or overcast, golden hour, night ambient), " +
+  "its hardness (hard direct sun with crisp shadow edges versus soft diffused light with gradual falloff), " +
+  "the fill-light ratio, the color and direction of bounce light, and any rim, back or practical light in the scene. " +
+
+  "STEP B · MATCH THAT LIGHT EXACTLY ON THE ADDED PERSON. " +
+  "The highlights must fall on the SAME side of their face and body as they do on the original subject; " +
+  "the shaded side must be the SAME side, with the same shadow density, the same edge softness, " +
+  "the same color temperature and the same white balance. " +
+  "Never light the added person from the opposite direction. Never put studio lighting on someone standing in a dim room, " +
+  "and never put flat ambient light on someone standing in hard directional sunlight. " +
+  "Specular highlights on their skin, hair and clothes must point back to the scene's real light sources. " +
+
+  "STEP C · SHADOWS AND GROUND CONTACT. " +
+  "Cast their shadow onto the floor and onto nearby surfaces following the same light geometry as the shadows already " +
+  "visible in image 1: same direction, same length, same softness, same opacity, same color. " +
+  "Add contact shadow and ambient occlusion where their feet meet the ground and wherever they come close to the " +
+  "original subject or to scene elements. No floating person, no missing shadow, no shadow going the wrong way. " +
+
+  "STEP D · ORIENTATION, POSE AND PERSPECTIVE. " +
+  "Place them on the SAME ground plane as the original subject, consistent with the camera axis of image 1: " +
+  "same horizon line, same eye level, same vanishing lines, same focal length and same lens distortion. " +
+  "Their body orientation, shoulder line, head angle and gaze must be coherent with that camera — " +
+  "if the original subject faces the camera, the added person faces the camera too, unless the user asked otherwise. " +
+  "Their pose must read as a natural, relaxed, believable photograph pose beside the original subject, " +
+  "with plausible weight distribution, arm placement and spacing between the two people. " +
+
+  "STEP E · SCALE AND DEPTH. " +
+  "Their height and body scale must be correct relative to the original subject and to the decor " +
+  "(doorways, furniture, vehicles, horizon), and must respect perspective foreshortening at their depth in the scene. " +
+  "Render them at the same focus plane and the same depth of field as the original subject: " +
+  "identical sharpness or identical bokeh, never sharper, never softer. " +
+
+  "STEP F · DECOR COHERENCE. " +
+  "They must belong to the existing decor: same environment, same atmosphere and haze, " +
+  "reflections of their body in any nearby glass, water, mirror or polished metal, " +
+  "environmental color spill from the decor onto their skin and clothing, " +
+  "and the same particles (rain, snow, dust, smoke, sand) crossing their silhouette. " +
+  "They occupy the free space of the scene — never floating, never awkwardly clipped by the frame edge, " +
+  "never overlapping or hiding the original subject's face or body. " +
+
+  "STEP G · TRUE 3D VOLUME. " +
+  "Render them as a real three-dimensional human being, never as a flat cut-out, sticker, paste-in or 2D layer: " +
+  "correct volumetric shading across the whole form, believable form shadows and core shadows, " +
+  "correct self-occlusion between their limbs, torso and head, correct occlusion with the scene, " +
+  "natural silhouette edges carrying real edge light — no hard cut-out outline, no halo, no glow, " +
+  "no visible compositing seam, no artificial drop shadow, no resolution mismatch at their border. " +
+
+  "STEP H · REALISTIC TEXTURE. " +
+  "Photographic skin with visible pores, fine vellus hair, subsurface scattering, natural specular highlights " +
+  "on forehead, nose bridge and cheekbones, and realistic micro-imperfections — " +
+  "never plastic, never waxy, never airbrushed, never over-smoothed, never AI-glossy. " +
+  "Hair rendered strand by strand, with light transmitting through it and natural flyaways. " +
+  "Fabric with real weave, weight, drape, wrinkles and stitching. " +
+  "Correct micro-detail on eyes (wet catchlight matching the scene's actual light source), teeth, nails, jewelry and skin folds. " +
+
+  "STEP I · CAMERA MATCH. " +
+  "Match the original photograph's resolution, sharpness level, grain or sensor-noise signature, chromatic behaviour " +
+  "and compression character. The added person must never look cleaner, sharper, brighter or higher-resolution " +
+  "than the rest of the photograph — that mismatch is the most common giveaway and is forbidden. " +
+
+  "STEP J · FINAL VERIFICATION BEFORE DELIVERY. " +
+  "The result must be indistinguishable from a real photograph of these people standing together. " +
+  "Verify one by one: light direction matches, shadow direction and softness match, color temperature matches, " +
+  "scale is plausible, perspective and eye level align, depth of field matches, texture and grain match, " +
+  "and the original subject is still 100% untouched. " +
+  "If any of these checks fails, correct it before delivering the image. ";
+
+// Detecte une demande d'ajout de personne meme quand le nom n'est pas dans la
+// base de celebrites (« ajoute quelqu'un a cote de moi », « avec mon frere »...).
+// Sert a appliquer ADDED_PERSON_INTEGRATION dans tous les cas, pour tous les plans.
+const PERSON_ADDITION_RE = new RegExp(
+  [
+    "\\bajoute[rz]?\\s+(?:une?\\s+|le\\s+|la\\s+|l')?(?:personne|homme|femme|mec|gars|fille|ami|amie|copain|copine|acteur|actrice|chanteur|chanteuse|joueur|joueuse|rappeur|rappeuse|mod[eè]le|c[eé]l[eé]brit[eé])",
+    "\\badd\\s+(?:a\\s+|an\\s+|the\\s+)?(?:person|man|woman|guy|girl|friend|celebrity|someone)",
+    "(?:^|[^\\w])[aà]\\s*c[oô]t[eé]\\s+de\\s+(?:moi|nous)\\b",
+    "\\bnext\\s+to\\s+(?:me|us)\\b",
+    "\\bbeside\\s+(?:me|us)\\b",
+    "\\balongside\\s+(?:me|us)\\b",
+    "\\bc[oô]te\\s*[aà]\\s*c[oô]te\\b",
+    "\\bside\\s+by\\s+side\\b",
+    "\\bpose\\s*-?\\s*(?:toi|moi)\\s+avec\\b",
+    "\\bavec\\s+(?:mon|ma|mes)\\s+\\w+",
+    "\\bdeuxi[eè]me\\s+personne\\b",
+    "\\bsur\\s+la\\s+photo\\s+avec\\b",
+  ].join("|"),
+  "i",
+);
+
+function isPersonAdditionRequest(text: string): boolean {
+  return PERSON_ADDITION_RE.test(text ?? "");
+}
+
 // ─── PROMPT BUILDER ───────────────────────────────────────────────────────────
 //
 // For img2img: the person comes FROM the image — prompt describes the
@@ -320,7 +453,24 @@ function buildStylePrompt(
   // ── Detect celebrities in the full text ─────────────────────────────────
   const celebs = findAllCelebrities(customPrompt + " " + stylePrompt);
 
+  // Ajout d'une personne demande ? (celebrite reconnue OU formulation du type
+  // « ajoute X a cote de moi »). Independant du plan : la meme detection et les
+  // memes regles d'integration s'appliquent en free, essentiel, pro et ultra.
+  const isPersonAddition =
+    celebs.length > 0
+    || isPersonAdditionRequest(customPrompt)
+    || isPersonAdditionRequest(translated)
+    || isPersonAdditionRequest(style);
+
   let editInstruction: string;
+
+  // Exigence de rendu commune aux deux branches ci-dessous (avec ou sans photos
+  // de reference), donc identique quel que soit l'abonnement de l'utilisateur.
+  const ADD_REALISM_LINE =
+    "Integrate them physically into the existing photo: same light direction and light color as image 1, " +
+    "matching shadows on the ground, same camera angle, eye level and perspective, correct height and scale, " +
+    "body and gaze orientation coherent with the original subject and the camera, " +
+    "full three-dimensional volume (never a flat cut-out), and photorealistic skin, hair and fabric texture. ";
 
   if (celebs.length > 0) {
     const celebNames = celebs.map((c) => c.name).join(" and ");
@@ -372,9 +522,13 @@ function buildStylePrompt(
         `If there is any conflict, trust the reference photos. ` +
         `Never render a generic or placeholder face — always the real person. ` +
 
+        `STEP 4 — PHYSICAL INTEGRATION: ${ADD_REALISM_LINE}` +
+
         `${sceneExtra ? `Scene context: ${sceneExtra}. ` : ""}` +
         `The original person in image 1 stays 100% unchanged, pixel-perfect. ` +
-        `Do not alter, resize, reposition, or redraw the person from image 1 in any way.`;
+        `The base image itself stays unchanged: same background, same decor, same framing, same colors, same light. ` +
+        `Do not alter, resize, reposition, or redraw the person from image 1 in any way. ` +
+        `The ONLY difference between image 1 and your output is the presence of ${celebNames}.`;
 
     } else {
       // ── CELEBRITY INSERTION — DESCRIPTION-GUIDED (no reference photos) ──
@@ -389,9 +543,12 @@ function buildStylePrompt(
         `Render ${celebNames} using their authentic, real, documented face — ` +
         `draw on all training knowledge of this public figure combined with the description above. ` +
         `Do NOT invent a generic face. Do NOT use a placeholder. Render the real person. ` +
+        `PHYSICAL INTEGRATION: ${ADD_REALISM_LINE}` +
         `${sceneExtra ? `Scene: ${sceneExtra}. ` : ""}` +
         `The original person in this photo stays 100% unchanged — ` +
-        `do not alter, resize, reposition, or redraw them in any way.`;
+        `do not alter, resize, reposition, or redraw them in any way. ` +
+        `The base image itself stays unchanged: same background, same decor, same framing, same colors, same light. ` +
+        `The ONLY difference between the input photo and your output is the presence of ${celebNames}.`;
     }
   } else {
     // ── STANDARD STYLE / SCENE TRANSFORMATION ───────────────────────────
@@ -401,8 +558,15 @@ function buildStylePrompt(
       || "Enhance the photo quality and lighting.";
   }
 
+  // Ordre volontaire (identique pour TOUTES les formules) :
+  //   1. verrou absolu sur l'image de base
+  //   2. la tache demandee par l'utilisateur
+  //   3. la specification d'integration physique de la personne ajoutee
+  //   4. le contrat systeme complet
   const positive =
-    `${editInstruction}.${renderRule}${outfitRule} ` +
+    BASE_IMAGE_LOCK +
+    `TASK — ${editInstruction}.${renderRule}${outfitRule} ` +
+    (isPersonAddition ? ADDED_PERSON_INTEGRATION : "") +
     HIDDEN_SYSTEM_CONTEXT;
 
   return { positive, negative: NEG };
@@ -741,6 +905,9 @@ export function buildAsyncJobConfig(
   const clippedRefUrls  = (input.celebRefImageUrls ?? []).slice(0, maxRefs);
   const clippedRefCount = Math.min(input.celebRefCount ?? 0, maxRefs);
 
+  // buildStylePrompt applique BASE_IMAGE_LOCK + ADDED_PERSON_INTEGRATION a
+  // toutes les generations, quel que soit `tier` : aucune regle n'est retiree
+  // pour les formules moins cheres.
   const { positive, negative } = buildStylePrompt(
     input.customPrompt ?? "",
     input.stylePrompt  ?? "",
