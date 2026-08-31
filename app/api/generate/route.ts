@@ -6,14 +6,39 @@ import {
   startAsyncJob,
   type AsyncJobConfig,
   type PipelineInput,
+  type ResolvedPerson,
 } from "@/scripts/pipeline";
 import { validateImageFile, validateVideoFile } from "@/lib/validation";
 import { uploadToStorage } from "@/lib/storage";
 import { findAllCelebrities, CELEBRITY_DB } from "@/lib/celebrity-db";
 import { getCelebRefImages } from "@/lib/celebrity-refs";
+import { lookupPersonsInPrompt, normalizeName } from "@/lib/person-lookup";
 import { isPaidPlan } from "@/lib/plan";
 
-export const maxDuration = 60;
+// La recherche en ligne du nom demande (Wikipedia / Wikidata / Commons, et
+// Claude + web search si ANTHROPIC_API_KEY est defini) se fait AVANT l'appel au
+// modele d'image : il faut donc un peu plus de marge qu'auparavant.
+export const maxDuration = 120;
+
+// Budget maximum accorde a la recherche en ligne. Depasse, on genere quand meme
+// avec ce qu'on a : la recherche ne doit jamais bloquer une generation.
+const LOOKUP_BUDGET_MS = process.env.ANTHROPIC_API_KEY ? 30_000 : 12_000;
+
+/** Resout la promesse, ou rend `fallback` si le budget est depasse. */
+async function withBudget<T>(task: Promise<T>, ms: number, fallback: T): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const guard = new Promise<T>((resolve) => {
+    timer = setTimeout(() => {
+      console.warn(`[Generate] Recherche en ligne interrompue apres ${ms} ms`);
+      resolve(fallback);
+    }, ms);
+  });
+  try {
+    return await Promise.race([task, guard]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
 
 const MAX_FILE_SIZE  = 30 * 1024 * 1024;
 const MAX_VIDEO_SIZE = 70 * 1024 * 1024;
@@ -175,6 +200,62 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      // ── Recherche en ligne du nom demande ───────────────────────────────
+      // Le modele d'image ne navigue pas sur le web. On cherche donc nous-memes
+      // la personne en ligne (Wikipedia + Wikidata + Commons, et Claude avec
+      // recherche web si la cle est configuree) pour lui fournir de vraies
+      // photos et une description verifiee — indispensable pour les noms peu
+      // connus, absents de CELEBRITY_DB.
+      // S'applique a toutes les formules ; seul le nombre de photos finalement
+      // transmises au modele depend du plan (QUALITY_SETTINGS.maxRefImages).
+      const resolvedPersons: ResolvedPerson[] = detectedCelebs.map((c) => ({
+        name:               c.name,
+        visual_description: c.visual_description,
+        source:             "db" as const,
+      }));
+
+      // On n'exclut de la recherche que les celebrites qui ont DEJA des photos de
+      // reference en base : une celebrite connue mais sans photo est justement
+      // celle qui gagne le plus a etre retrouvee en ligne.
+      const alreadyCovered = primaryCeleb && celebRefImageUrls.length > 0
+        ? [primaryCeleb.name, ...primaryCeleb.aliases]
+        : [];
+
+      const webPersons = await withBudget(
+        lookupPersonsInPrompt(`${customPrompt} ${stylePrompt}`, alreadyCovered),
+        LOOKUP_BUDGET_MS,
+        [],
+      );
+
+      // Index des noms deja resolus localement (nom + alias) pour fusionner
+      // plutot que de dupliquer la meme personne.
+      const dbByName = new Map<string, number>();
+      detectedCelebs.forEach((c, i) => {
+        for (const n of [c.name, ...c.aliases]) dbByName.set(normalizeName(n), i);
+      });
+
+      for (const person of webPersons) {
+        const existing = dbByName.get(normalizeName(person.name));
+        if (existing !== undefined && resolvedPersons[existing]) {
+          // Meme personne que la base : on enrichit la fiche locale.
+          const entry = resolvedPersons[existing];
+          entry.visual_description = `${entry.visual_description} ${person.description}`.trim();
+          entry.sources = person.sources;
+        } else {
+          resolvedPersons.push({
+            name:               person.name,
+            visual_description: person.description,
+            source:             "web",
+            sources:            person.sources,
+            refCount:           person.imageUrls.length,
+          });
+        }
+        for (const url of person.imageUrls) {
+          if (!celebRefImageUrls.includes(url)) celebRefImageUrls.push(url);
+        }
+      }
+      celebRefImageUrl = celebRefImageUrls[0];
+
       const pipelineInput: PipelineInput = {
         mode:              "style",
         inputImageUrl,
@@ -189,8 +270,9 @@ export async function POST(req: NextRequest) {
         celebRefImageUrl,
         celebRefImageUrls,
         celebRefCount:  celebRefImageUrls.length,
-        celebName:      primaryCeleb?.name,
+        celebName:      primaryCeleb?.name ?? resolvedPersons[0]?.name,
         celebGender:    primaryCeleb?.gender,
+        resolvedPersons,
       };
 
       jobConfig    = buildAsyncJobConfig(pipelineInput, sourceB64);
@@ -272,6 +354,30 @@ export async function POST(req: NextRequest) {
         });
         if (urls.length > 0) {
           console.log(`[Generate] Vidéo IA — ${entity.name}: ${urls.length} reference image(s) loaded`);
+        }
+      }
+
+      // Meme recherche en ligne que pour l'image : les noms absents de
+      // CELEBRITY_DB sont resolus avec de vraies photos avant l'appel a Seedance.
+      if (refImageUrls.length < 9) {
+        const knownNames = refEntities
+          .filter((e) => e.refCount > 0)
+          .map((e) => e.name);
+        const webPersons = await withBudget(
+          lookupPersonsInPrompt(videoPrompt, knownNames),
+          LOOKUP_BUDGET_MS,
+          [],
+        );
+        for (const person of webPersons) {
+          const urls = person.imageUrls.slice(0, 9 - refImageUrls.length);
+          refImageUrls.push(...urls);
+          refEntities.push({
+            name:               person.name,
+            visual_description: person.description,
+            refCount:           urls.length,
+          });
+          console.log(`[Generate] Video IA — ${person.name} trouve en ligne : ${urls.length} photo(s)`);
+          if (refImageUrls.length >= 9) break;
         }
       }
 

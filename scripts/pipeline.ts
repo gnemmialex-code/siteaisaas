@@ -81,6 +81,23 @@ const RENDER_STYLE_PROMPTS: Record<string, string> = {
   artistic:  "fine art portrait photography, creative lighting, artistic composition",
 };
 
+/** Personne a ajouter, resolue AVANT la generation :
+ *  - source "db"  : trouvee dans CELEBRITY_DB (description locale verifiee)
+ *  - source "web" : trouvee par recherche en ligne (Wikipedia / Wikidata /
+ *                   Commons / Claude + web search) pour les noms absents de la
+ *                   base — typiquement des personnes moins connues.
+ *  Le modele d'image ne navigue pas : la recherche est faite cote serveur et le
+ *  resultat (photos reelles + description verifiee) lui est fourni en entree. */
+export type ResolvedPerson = {
+  name:               string;
+  visual_description: string;
+  source:             "db" | "web";
+  /** Pages consultees en ligne (Wikipedia, Wikidata, articles) */
+  sources?:           string[];
+  /** Nombre de photos de reference reellement transmises au modele */
+  refCount?:          number;
+};
+
 export interface PipelineInput {
   mode:               "style" | "swapface" | "video";
   /** Vidéo IA : URL publique de la vidéo source uploadée ([Video1] pour Seedance) */
@@ -110,6 +127,8 @@ export interface PipelineInput {
   celebRefCount?:     number;
   celebName?:         string;
   celebGender?:       string;
+  /** Personnes resolues en amont (base locale + recherche en ligne) */
+  resolvedPersons?:   ResolvedPerson[];
 }
 
 async function withRetry<T>(fn: () => Promise<T>, retries = 2): Promise<T> {
@@ -435,6 +454,7 @@ function buildStylePrompt(
   intensity?:      string,
   preserveOutfit?: boolean,
   celebRefCount?:  number,
+  resolvedPersons?: ResolvedPerson[],
 ): { positive: string; negative: string } {
   const translated = translateToEnglish(customPrompt.trim());
   const style      = stylePrompt.trim();
@@ -450,8 +470,18 @@ function buildStylePrompt(
   const prefix      = intensityPfx[intensity ?? ""] ?? "";
   const hasRefImages = (celebRefCount ?? 0) > 0;
 
-  // ── Detect celebrities in the full text ─────────────────────────────────
-  const celebs = findAllCelebrities(customPrompt + " " + stylePrompt);
+  // ── Personnes a ajouter ─────────────────────────────────────────────────
+  // Priorite aux personnes deja resolues par la route (base locale + recherche
+  // en ligne). Repli sur la detection locale seule si rien n'a ete transmis.
+  const dbCelebs: ResolvedPerson[] = findAllCelebrities(customPrompt + " " + stylePrompt)
+    .map((c) => ({
+      name:               c.name,
+      visual_description: c.visual_description,
+      source:             "db" as const,
+    }));
+
+  const celebs: ResolvedPerson[] =
+    resolvedPersons && resolvedPersons.length > 0 ? resolvedPersons : dbCelebs;
 
   // Ajout d'une personne demande ? (celebrite reconnue OU formulation du type
   // « ajoute X a cote de moi »). Independant du plan : la meme detection et les
@@ -471,6 +501,19 @@ function buildStylePrompt(
     "matching shadows on the ground, same camera angle, eye level and perspective, correct height and scale, " +
     "body and gaze orientation coherent with the original subject and the camera, " +
     "full three-dimensional volume (never a flat cut-out), and photorealistic skin, hair and fabric texture. ";
+
+  // Traçabilite : quand la personne vient d'une recherche en ligne, on le dit
+  // explicitement au modele et on cite les sources, pour qu'il s'appuie sur ces
+  // donnees verifiees plutot que sur une invention.
+  const webPersons = celebs.filter((c) => c.source === "web");
+  const RESEARCH_NOTE = webPersons.length > 0
+    ? `VERIFIED ONLINE RESEARCH — the following identity data was retrieved online just now, ` +
+      `specifically for this request, because ${webPersons.map((c) => c.name).join(" and ")} ` +
+      `${webPersons.length === 1 ? "is" : "are"} not a widely documented public figure. ` +
+      `Treat it as factual ground truth about the real person and reproduce that exact likeness. ` +
+      `Sources consulted: ${webPersons.flatMap((c) => c.sources ?? []).slice(0, 6).join(", ") || "encyclopedic and press sources"}. ` +
+      `Do not substitute a look-alike, a more famous person with a similar name, or an invented face. `
+    : "";
 
   if (celebs.length > 0) {
     const celebNames = celebs.map((c) => c.name).join(" and ");
@@ -496,6 +539,7 @@ function buildStylePrompt(
         .join(" | ");
 
       editInstruction =
+        RESEARCH_NOTE +
         `You are given ${n + 1} images. ` +
         `Image 1 is the MAIN PHOTO — this is the user's photo and must remain 100% unchanged. ` +
         `${n === 1 ? "Image 2 is" : `Images 2 to ${n + 1} are`} real reference ${imgWord} of ${celebNames} — ` +
@@ -537,6 +581,7 @@ function buildStylePrompt(
       ).join(" | ");
 
       editInstruction =
+        RESEARCH_NOTE +
         `TASK — ADD ${celebNames.toUpperCase()} TO THIS PHOTO: ` +
         `Insert ${celebNames} as a new person standing naturally beside the original subject. ` +
         `CELEBRITY APPEARANCE (use this as your rendering specification): ${celebDataBlock}. ` +
@@ -915,6 +960,7 @@ export function buildAsyncJobConfig(
     input.transformIntensity,
     input.preserveOutfit ?? false,
     clippedRefCount,
+    input.resolvedPersons,
   );
 
   return {
