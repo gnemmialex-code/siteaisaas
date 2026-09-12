@@ -34,7 +34,10 @@ export default function LoginPage() {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === "SIGNED_IN") {
-        window.location.href = "/dashboard";
+        // ?next=/chemin → retour à la page d'origine (chemins internes uniquement)
+        const next = new URLSearchParams(window.location.search).get("next");
+        const safe = next && /^\/(?!\/)/.test(next) ? next : "/dashboard";
+        window.location.href = safe;
       }
     });
     return () => subscription.unsubscribe();
@@ -88,13 +91,20 @@ export default function LoginPage() {
     }
   };
 
+  // Conserve ?next= à travers la connexion Google
+  const oauthRedirect = () => {
+    const next = new URLSearchParams(window.location.search).get("next");
+    const safe = next && /^\/(?!\/)/.test(next) ? `?next=${encodeURIComponent(next)}` : "";
+    return `${window.location.origin}/auth/callback${safe}`;
+  };
+
   const handleOAuth = async (provider: "google") => {
     setOauthLoading(provider);
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: oauthRedirect(),
         },
       });
       if (error) throw error;

@@ -87,7 +87,8 @@ export default function RegisterPage() {
 
       // 3. Redirection directe vers le dashboard, compte connecté.
       toast.success("Compte créé ! Bienvenue 🎉");
-      router.push("/dashboard");
+      const next = new URLSearchParams(window.location.search).get("next");
+      router.push(next && /^\/(?!\/)/.test(next) ? next : "/dashboard");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Erreur lors de l'inscription";
       toast.error(msg);
@@ -96,13 +97,20 @@ export default function RegisterPage() {
     }
   };
 
+  // Conserve ?next= à travers la connexion Google
+  const oauthRedirect = () => {
+    const next = new URLSearchParams(window.location.search).get("next");
+    const safe = next && /^\/(?!\/)/.test(next) ? `?next=${encodeURIComponent(next)}` : "";
+    return `${window.location.origin}/auth/callback${safe}`;
+  };
+
   const handleOAuth = async (provider: "google") => {
     setOauthLoading(provider);
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: oauthRedirect(),
         },
       });
       if (error) throw error;

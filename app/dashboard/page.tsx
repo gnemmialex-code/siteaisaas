@@ -10,7 +10,7 @@ import {
   Sparkles, Download, Trash2, Zap, LogOut,
   Shuffle, Film, Crown, Settings, History,
   ChevronRight, ChevronLeft, ChevronDown, Check, Star, Replace, PlusCircle, AlertCircle, StopCircle, Lock,
-  Gift, Flame, Copy, LogIn, UserPlus, Users, Loader2, ExternalLink, Clock,
+  Gift, Flame, Copy, LogIn, UserPlus, Users, Loader2, ExternalLink, Clock, PlayCircle,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { isPaidPlan } from "@/lib/plan";
@@ -20,6 +20,7 @@ import UploadBox from "../components/UploadBox";
 import VideoUploadBox from "../components/VideoUploadBox";
 import { STYLES, Style } from "../components/StyleSelector";
 import LiveNotification from "../components/LiveNotification";
+import FreeCreditsAds from "../components/FreeCreditsAds";
 
 /* ─── Refinement options ─────────────────────────────────── */
 interface OptionItem { id: string; label: string; prompt: string; }
@@ -263,7 +264,7 @@ function DashOptionChips({ title, options, selected, onSelect, lockedPlan, onLoc
 }
 
 /* ─── Types ─────────────────────────────────────────────── */
-type NavView = "create" | "history" | "referral" | "snaprouge" | "subscription" | "settings";
+type NavView = "create" | "history" | "freecredits" | "referral" | "snaprouge" | "subscription" | "settings";
 type GenType = "create" | "swapface" | "video";
 type ObjectOption = "addObject" | "fullGeneration" | "replaceObject";
 
@@ -295,6 +296,7 @@ interface ReferralInfo {
 const NAV_ITEMS = [
   { id: "create"       as NavView, label: "Créer",        icon: Sparkles, desc: "Nouvelle génération"   },
   { id: "history"      as NavView, label: "Historique",   icon: History,  desc: "Mes créations"         },
+  { id: "freecredits"  as NavView, label: "Crédits gratuits", icon: PlayCircle, desc: "Testez en regardant des pubs" },
   { id: "referral"     as NavView, label: "Parrainage",   icon: Gift,     desc: "Invitez vos amis"      },
   { id: "snaprouge"    as NavView, label: "Snap Rouge",   icon: Flame,    desc: "La technique secrète"  },
   { id: "subscription" as NavView, label: "Abonnement",   icon: Crown,    desc: "Nos formules"          },
@@ -1966,6 +1968,20 @@ export default function DashboardPage() {
                       </>
                     )}
                   </div>
+                </motion.div>
+              )}
+
+              {/* ══ CRÉDITS GRATUITS (PUBS) VIEW ══ */}
+              {navView === "freecredits" && (
+                <motion.div key="freecredits" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.22 }}>
+                  <div className="mb-7 pt-8">
+                    <h1 className="text-3xl font-black mb-1 flex items-center gap-3">
+                      <PlayCircle className="w-7 h-7 text-accent-violet" />
+                      Crédits gratuits
+                    </h1>
+                    <p className="text-white/40">Testez gratuitement en regardant quelques pubs rapides</p>
+                  </div>
+                  <FreeCreditsAds variant="dashboard" />
                 </motion.div>
               )}
 

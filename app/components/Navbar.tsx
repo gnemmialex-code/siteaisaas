@@ -11,6 +11,7 @@ import CreditCounter from "./CreditCounter";
 const NAV_LINKS = [
   { href: "/upload", label: "Générer" },
   { href: "/pricing", label: "Tarifs" },
+  { href: "/credits-gratuits", label: "Crédits offerts" },
   { href: "/dashboard", label: "Dashboard" },
 ];
 
