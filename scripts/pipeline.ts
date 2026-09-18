@@ -240,22 +240,19 @@ function intensityToStrength(intensity?: string): number {
 
 // ─── Output resolution — controlled by transformIntensity ─────────────────────
 //
-// La résolution de SORTIE dépend de l'intensité choisie (et non plus seulement
-// du plan), afin de réduire le coût des rendus doux. Le modèle de génération
-// (google/nano-banana-2) ne change pas : seul le paramètre `resolution` varie.
+// La résolution de SORTIE dépend du choix « Qualité de génération » du
+// dashboard. Le modèle (google/nano-banana-2) ne change pas.
 //
-//   light / moderate (Légère / Modérée) → plafonnée à 2K, jamais 4K → moins cher
-//   strong / ultra   (Intense / Ultra)  → 4K
-function intensityToResolution(tierResolution: string, intensity?: string): string {
+//   light    (Qualité de base) → 1K
+//   moderate (Normale)         → 2K
+//   ultra    (Ultra 4K)        → 4K
+function intensityToResolution(_tierResolution: string, intensity?: string): string {
   switch (intensity) {
-    case "strong":
-    case "ultra":
-      return "4K";
-    case "light":
+    case "light":    return "1K"; // Qualité de base
+    case "strong":                 // ancien choix « Intense », retiré de l interface
+    case "ultra":    return "4K"; // Ultra 4K
     case "moderate":
-    default:
-      // Ne jamais dépasser 2K pour les intensités douces (4K → 2K).
-      return tierResolution === "4K" ? "2K" : tierResolution;
+    default:         return "2K"; // Normale
   }
 }
 

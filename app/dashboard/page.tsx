@@ -71,10 +71,9 @@ const RENDER_STYLE_OPTIONS: GenOption[] = [
 ];
 
 const INTENSITY_OPTIONS: GenOption[] = [
-  { id: "light",    label: "🌿 Légère"              },
-  { id: "moderate", label: "⚖️ Modérée"             },
-  { id: "strong",   label: "🔥 Intense",  tier: "pro"   },
-  { id: "ultra",    label: "⚡ Ultra",    tier: "elite" },
+  { id: "light",    label: "🌿 Qualité de base · 1K"             },
+  { id: "moderate", label: "⚖️ Normale · 2K"                     },
+  { id: "ultra",    label: "⚡ Ultra 4K",              tier: "elite" },
 ];
 
 function planQualityBadge(plan?: string): { label: string; color: string } {
@@ -494,7 +493,6 @@ export default function DashboardPage() {
   /* generation precision options */
   const [renderStyle,   setRenderStyle]   = useState<string | null>(null);
   const [intensity,     setIntensity]     = useState<string>("moderate");
-  const [preserveOutfit,setPreserveOutfit]= useState(false);
 
   /* debug / prompt preview */
   const [showDebug,     setShowDebug]     = useState(false);
@@ -517,7 +515,6 @@ export default function DashboardPage() {
   const [videoWatchId,      setVideoWatchId]       = useState("");
 
   /* common */
-  const [consent,       setConsent]       = useState(false);
   const [isGenerating,  setIsGenerating]  = useState(false);
   const [genProgress,   setGenProgress]   = useState(0);
   const [error,         setError]         = useState<string | null>(null);
@@ -734,7 +731,6 @@ export default function DashboardPage() {
           style_label:     selectedStyle?.label ?? "Custom",
           render_style:    renderStyle ?? "",
           intensity,
-          preserve_outfit: preserveOutfit ? "1" : "0",
         }),
       });
       const data = await res.json();
@@ -773,7 +769,6 @@ export default function DashboardPage() {
     // aperçu flouté (aucun appel IA — voir le court-circuit plus bas) puis on
     // affiche le résultat flou avec un bouton « S'inscrire » par-dessus.
     setError(null);
-    if (!consent) { setError("Veuillez accepter les conditions."); return; }
 
     const formData = new FormData();
 
@@ -792,7 +787,6 @@ export default function DashboardPage() {
       if (freePrompt.trim())    formData.append("custom_prompt",   freePrompt.trim());
       if (renderStyle)          formData.append("render_style",    renderStyle);
       formData.append("intensity",       intensity);
-      formData.append("preserve_outfit", preserveOutfit ? "1" : "0");
       formData.append("mode", "style");
     } else if (genType === "swapface") {
       if (!swapSrcFile) { setError("Veuillez uploader votre visage source."); return; }
@@ -1351,53 +1345,22 @@ export default function DashboardPage() {
 
                           {/* Intensité */}
                           <GenOptionChips
-                            title="Intensité de transformation"
+                            title="Qualité de génération"
                             options={INTENSITY_OPTIONS}
                             selected={intensity}
                             onSelect={setIntensity}
                             planTier={userPlanTier(stats?.plan)}
                             onLocked={(rp, f) => setUpgradeTarget({ plan: rp, feature: f })}
                           />
-
-                          {/* Conserver la tenue */}
-                          {(() => {
-                            const outfitLocked = userPlanTier(stats?.plan) === "essentiel";
-                            return (
-                              <label
-                                className={`flex items-center gap-2.5 cursor-pointer group ${outfitLocked ? "opacity-50" : ""}`}
-                                onClick={outfitLocked ? (e) => { e.preventDefault(); setUpgradeTarget({ plan: "pro", feature: "Conserver la tenue" }); } : undefined}
-                              >
-                                <div className="relative flex-shrink-0">
-                                  <input
-                                    type="checkbox"
-                                    checked={preserveOutfit && !outfitLocked}
-                                    onChange={e => !outfitLocked && setPreserveOutfit(e.target.checked)}
-                                    className="sr-only"
-                                    readOnly={outfitLocked}
-                                  />
-                                  <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${preserveOutfit && !outfitLocked ? "bg-accent-violet border-accent-violet" : "border-surface-border group-hover:border-accent-violet/50"}`}>
-                                    {preserveOutfit && !outfitLocked && <span className="text-white text-[9px] font-bold">✓</span>}
-                                  </div>
-                                </div>
-                                <span className={`text-white/60 text-xs flex items-center gap-1 ${outfitLocked ? "line-through" : ""}`}>
-                                  {outfitLocked && <Lock className="w-2.5 h-2.5 flex-shrink-0" />}
-                                  Conserver la tenue actuelle (ne pas changer les vêtements)
-                                  {outfitLocked && <span className="text-[8px] font-bold text-accent-violet/70 ml-1 no-underline not-italic" style={{textDecoration:"none"}}>Pro</span>}
-                                </span>
-                              </label>
-                            );
-                          })()}
                         </div>
                         </div>{/* end grid description+options */}
 
                         <GenerateCard
-                          consent={consent}
-                          setConsent={setConsent}
                           error={error}
                           onGenerate={handleGenerate}
                           onCancel={handleCancel}
                           isGenerating={isGenerating}
-                          canGenerate={!!(styleFile && freePrompt.trim() && consent)}
+                          canGenerate={!!(styleFile && freePrompt.trim())}
                           step={4}
                           plan={stats?.plan}
                         />
@@ -1514,7 +1477,7 @@ export default function DashboardPage() {
                         </div>
                       </div>
                       <div className="lg:col-span-1">
-                        <GenerateCard consent={consent} setConsent={setConsent} error={error} onGenerate={handleGenerate} onCancel={handleCancel} isGenerating={isGenerating} canGenerate={!!(videoFile && videoPrompt && consent)} step={5} plan={stats?.plan} />
+                        <GenerateCard error={error} onGenerate={handleGenerate} onCancel={handleCancel} isGenerating={isGenerating} canGenerate={!!(videoFile && videoPrompt)} step={5} plan={stats?.plan} />
                       </div>
                     </div>
                   )}
@@ -2366,10 +2329,8 @@ function StepBadge({ n }: { n: number }) {
 }
 
 function GenerateCard({
-  consent, setConsent, error, onGenerate, onCancel, isGenerating, canGenerate, step, plan,
+  error, onGenerate, onCancel, isGenerating, canGenerate, step, plan,
 }: {
-  consent: boolean;
-  setConsent: (v: boolean) => void;
   error: string | null;
   onGenerate: () => void;
   onCancel?: () => void;
@@ -2388,19 +2349,6 @@ function GenerateCard({
           {qBadge.label}
         </span>
       </h2>
-
-      <label className="flex items-start gap-3 cursor-pointer group mb-5">
-        <div className="relative mt-0.5 flex-shrink-0">
-          <input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)} className="sr-only" />
-          <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${consent?"bg-accent-violet border-accent-violet":"border-surface-border group-hover:border-accent-violet/50"}`}>
-            {consent && <span className="text-white text-xs">✓</span>}
-          </div>
-        </div>
-        <span className="text-white/55 text-sm leading-relaxed">
-          Je confirme avoir le droit d&apos;utiliser ces médias et j&apos;accepte les{" "}
-          <a href="/terms" className="text-accent-violet hover:underline">conditions d&apos;utilisation</a>.
-        </span>
-      </label>
 
       {error && (
         <div className="flex items-start gap-2 p-3 bg-red-500/10 border border-red-500/30 rounded-xl mb-4 text-red-400 text-sm">
