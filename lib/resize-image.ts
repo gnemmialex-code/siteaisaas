@@ -1,6 +1,6 @@
 const MAX_DIMENSION = 1200;
 
-// Ratios supportés par google/nano-banana-pro (valeur décimale = largeur / hauteur).
+// Ratios supportés par google/nano-banana-2 (valeur décimale = largeur / hauteur).
 const SUPPORTED_ASPECT_RATIOS: { label: string; value: number }[] = [
   { label: "9:16", value: 9 / 16 },
   { label: "2:3",  value: 2 / 3  },

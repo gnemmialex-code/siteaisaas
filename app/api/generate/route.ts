@@ -6,7 +6,6 @@ import {
   startAsyncJob,
   type AsyncJobConfig,
   type PipelineInput,
-  type ResolvedPerson,
 } from "@/scripts/pipeline";
 import { validateImageFile, validateVideoFile } from "@/lib/validation";
 import { uploadToStorage } from "@/lib/storage";
@@ -175,86 +174,10 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Veuillez choisir un style ou entrer une description" }, { status: 400 });
       }
 
-      const stylePrompt = rawStylePrompt
-        || "photorealistic portrait, ultra HD, professional photography, perfect lighting";
+      const stylePrompt = rawStylePrompt ?? "";
 
       const { url: inputImageUrl, b64: sourceB64 } = await uploadFile(supabase, imageFile, effectiveUserId);
       inputImageForRecord = inputImageUrl;
-
-      // Detect celebrities in the prompt and load their reference images from Storage
-      const detectedCelebs = findAllCelebrities((customPrompt ?? "") + " " + (stylePrompt ?? ""));
-      const primaryCeleb   = detectedCelebs[0];
-
-      let celebRefImageUrls: string[] = [];
-      let celebRefImageUrl: string | undefined;
-
-      if (primaryCeleb) {
-        celebRefImageUrls = await getCelebRefImages(
-          primaryCeleb.id,
-          primaryCeleb.reference_images ?? [],
-          primaryCeleb.reference_image_url,
-        );
-        celebRefImageUrl = celebRefImageUrls[0];
-        if (celebRefImageUrls.length > 0) {
-          console.log(`[Generate] ${primaryCeleb.name}: ${celebRefImageUrls.length} reference image(s) loaded`);
-        }
-      }
-
-      // ── Recherche en ligne du nom demande ───────────────────────────────
-      // Le modele d'image ne navigue pas sur le web. On cherche donc nous-memes
-      // la personne en ligne (Wikipedia + Wikidata + Commons, et Claude avec
-      // recherche web si la cle est configuree) pour lui fournir de vraies
-      // photos et une description verifiee — indispensable pour les noms peu
-      // connus, absents de CELEBRITY_DB.
-      // S'applique a toutes les formules ; seul le nombre de photos finalement
-      // transmises au modele depend du plan (QUALITY_SETTINGS.maxRefImages).
-      const resolvedPersons: ResolvedPerson[] = detectedCelebs.map((c) => ({
-        name:               c.name,
-        visual_description: c.visual_description,
-        source:             "db" as const,
-      }));
-
-      // On n'exclut de la recherche que les celebrites qui ont DEJA des photos de
-      // reference en base : une celebrite connue mais sans photo est justement
-      // celle qui gagne le plus a etre retrouvee en ligne.
-      const alreadyCovered = primaryCeleb && celebRefImageUrls.length > 0
-        ? [primaryCeleb.name, ...primaryCeleb.aliases]
-        : [];
-
-      const webPersons = await withBudget(
-        lookupPersonsInPrompt(`${customPrompt} ${stylePrompt}`, alreadyCovered),
-        LOOKUP_BUDGET_MS,
-        [],
-      );
-
-      // Index des noms deja resolus localement (nom + alias) pour fusionner
-      // plutot que de dupliquer la meme personne.
-      const dbByName = new Map<string, number>();
-      detectedCelebs.forEach((c, i) => {
-        for (const n of [c.name, ...c.aliases]) dbByName.set(normalizeName(n), i);
-      });
-
-      for (const person of webPersons) {
-        const existing = dbByName.get(normalizeName(person.name));
-        if (existing !== undefined && resolvedPersons[existing]) {
-          // Meme personne que la base : on enrichit la fiche locale.
-          const entry = resolvedPersons[existing];
-          entry.visual_description = `${entry.visual_description} ${person.description}`.trim();
-          entry.sources = person.sources;
-        } else {
-          resolvedPersons.push({
-            name:               person.name,
-            visual_description: person.description,
-            source:             "web",
-            sources:            person.sources,
-            refCount:           person.imageUrls.length,
-          });
-        }
-        for (const url of person.imageUrls) {
-          if (!celebRefImageUrls.includes(url)) celebRefImageUrls.push(url);
-        }
-      }
-      celebRefImageUrl = celebRefImageUrls[0];
 
       const pipelineInput: PipelineInput = {
         mode:              "style",
@@ -267,12 +190,6 @@ export async function POST(req: NextRequest) {
         transformIntensity,
         preserveOutfit,
         aspectRatio,
-        celebRefImageUrl,
-        celebRefImageUrls,
-        celebRefCount:  celebRefImageUrls.length,
-        celebName:      primaryCeleb?.name ?? resolvedPersons[0]?.name,
-        celebGender:    primaryCeleb?.gender,
-        resolvedPersons,
       };
 
       jobConfig    = buildAsyncJobConfig(pipelineInput, sourceB64);

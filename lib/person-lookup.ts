@@ -1,6 +1,6 @@
 // Recherche en ligne du nom demandé, avant la génération.
 //
-// Pourquoi : le modèle d'image (nano-banana-pro / Seedance) ne navigue pas sur
+// Pourquoi : le modèle d'image (nano-banana-2 / Seedance) ne navigue pas sur
 // le web. Si l'utilisateur demande une personne peu connue, absente de
 // CELEBRITY_DB, le modèle invente un visage générique. Ce module va donc
 // chercher la personne EN LIGNE côté serveur, avant l'appel au modèle, et lui

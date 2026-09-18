@@ -1,5 +1,4 @@
 import Replicate from "replicate";
-import { findAllCelebrities, buildCelebrityContext } from "@/lib/celebrity-db";
 
 const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN!,
@@ -21,14 +20,12 @@ type Img2ImgModelSpec = {
   buildInput: (prompt: string, negPrompt: string, imageUrl: string, strength: number, resolution?: string, celebRefB64?: string, allCelebRefs?: string[], outputFormat?: string, allowFallback?: boolean, aspectRatio?: string) => Record<string, unknown>;
 };
 
-const NEG = "blurry, low quality, cartoon, anime, illustration, distorted, ugly, deformed, nsfw, different person, extra limbs";
-
 export const STYLE_MODELS: Img2ImgModelSpec[] = [
   {
-    spec: "google/nano-banana-pro",
+    spec: "google/nano-banana-2",
     // Correct API schema: image_input is an array of URIs, no strength param.
     // Passing image + strength was silently ignored — photo was never used.
-    buildInput: (prompt, _neg, imageUrl, _strength, resolution = "1K", _primary?: string, allRefs?: string[], outputFormat?: string, allowFallback?: boolean, aspectRatio?: string) => ({
+    buildInput: (prompt, _neg, imageUrl, _strength, resolution = "1K", _primary?: string, allRefs?: string[], outputFormat?: string, _allowFallback?: boolean, aspectRatio?: string) => ({
       prompt,
       // user's photo first, then all celebrity reference images (up to tier limit)
       image_input:          allRefs && allRefs.length > 0
@@ -36,6 +33,23 @@ export const STYLE_MODELS: Img2ImgModelSpec[] = [
         : [imageUrl],
       // Ratio explicite calculé depuis la photo d'entrée → conserve l'orientation
       // (vertical / carré / horizontal). "match_input_image" reste le repli.
+      aspect_ratio:         aspectRatio ?? "match_input_image",
+      resolution,
+      output_format:        outputFormat ?? "jpg",
+      // nano-banana-2 n'accepte ni safety_filter_level ni allow_fallback_model.
+    }),
+  },
+  {
+    // Secours : nano-banana-2 n'a pas de reglage du filtre de securite et
+    // bloque souvent les personnalites reelles (erreur E005). En cas d'echec,
+    // la route /poll relance automatiquement ici, avec le meme prompt brut et
+    // le filtre au niveau le plus permissif.
+    spec: "google/nano-banana-pro",
+    buildInput: (prompt, _neg, imageUrl, _strength, resolution = "1K", _primary?: string, allRefs?: string[], outputFormat?: string, allowFallback?: boolean, aspectRatio?: string) => ({
+      prompt,
+      image_input:          allRefs && allRefs.length > 0
+        ? [imageUrl, ...allRefs]
+        : [imageUrl],
       aspect_ratio:         aspectRatio ?? "match_input_image",
       resolution,
       output_format:        outputFormat ?? "jpg",
@@ -61,25 +75,14 @@ export const ZIMAGE_DIMS: Record<string, { width: number; height: number }> = {
 // format         → jpg for lossy compression, png lossless for ultra
 // maxRefImages   → max celeb reference photos passed to the model
 // allowFallback  → Replicate may route to a faster/cheaper model variant
-// Le plan ne fait varier QUE la resolution, le format de sortie, le repli
-// modele et le nombre de photos de reference celebrite autorisees.
-// Les regles de generation (image de base intouchee + integration physique de
-// la personne ajoutee) sont identiques pour free / essentiel / pro / ultra :
-// voir BASE_IMAGE_LOCK et ADDED_PERSON_INTEGRATION plus bas.
+// Le plan ne fait varier QUE la resolution et le format de sortie. Le prompt
+// envoye au modele est le texte brut de l'utilisateur, sans ajout interne.
 const QUALITY_SETTINGS = {
   free:      { format: "jpg" as const, resolution: "1K", maxRefImages: 0, allowFallback: true  },
   essentiel: { format: "jpg" as const, resolution: "1K", maxRefImages: 1, allowFallback: true  },
   pro:       { format: "jpg" as const, resolution: "2K", maxRefImages: 2, allowFallback: false },
   ultra:     { format: "png" as const, resolution: "4K", maxRefImages: 3, allowFallback: false },
 } as const;
-
-// ─── Render style descriptors ─────────────────────────────────────────────────
-const RENDER_STYLE_PROMPTS: Record<string, string> = {
-  photoreal: "ultra-photorealistic, sharp natural details, true-to-life colors",
-  magazine:  "high-fashion editorial photography, perfect studio lighting, magazine quality",
-  cinematic: "cinematic color grading, dramatic shadows and highlights, film quality",
-  artistic:  "fine art portrait photography, creative lighting, artistic composition",
-};
 
 /** Personne a ajouter, resolue AVANT la generation :
  *  - source "db"  : trouvee dans CELEBRITY_DB (description locale verifiee)
@@ -149,472 +152,6 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 2): Promise<T> {
     }
   }
   throw new Error("Max retries exceeded");
-}
-
-// ─── HIDDEN SYSTEM CONTEXT ───────────────────────────────────────────────────
-//
-// Injected silently into every generation prompt.
-// Never exposed in the UI. Guides the model for maximum precision on:
-//   • biometric identity preservation
-//   • public figure recognition & accuracy
-//   • scene-only transformation
-//   • photorealistic integration quality
-
-const HIDDEN_SYSTEM_CONTEXT =
-  "ABSOLUTE IMAGE-TO-IMAGE TRANSFORMATION CONTRACT — READ EVERY INSTRUCTION BEFORE GENERATING. " +
-
-  // ── CRITICAL PREAMBLE: the base image is sacred ───────────────────────────
-  "CRITICAL PREAMBLE — THE BASE IMAGE IS A FIXED CANVAS THAT MUST NOT BE MODIFIED: " +
-  "This is an image-to-image task. You have received an input photograph. That photograph is your fixed canvas. " +
-  "Your role is NOT to regenerate this photograph. Your role is NOT to reimagine it. " +
-  "Your role is NOT to improve it, reinterpret it, or recreate it from scratch. " +
-  "Your sole role is to apply ONLY what the user has explicitly requested on top of this fixed canvas, " +
-  "while leaving every single other element of the photograph exactly as it is. " +
-  "The person in the input photograph — their face, skin tone, hair, body, clothing, posture, expression — " +
-  "must appear in the output as if their pixels were directly transferred from the input without any processing. " +
-  "This person must not be regenerated, not be redrawn, not be smoothed, not be altered in any way. " +
-  "Their face must be pixel-for-pixel identical to the input. " +
-  "Their skin color must be pixel-for-pixel identical to the input. " +
-  "Their hair must be pixel-for-pixel identical to the input. " +
-  "Their body must be pixel-for-pixel identical to the input. " +
-  "If the user says 'add someone next to me' — add only that person. Do not touch me. " +
-  "If the user says 'change the background' — change only the background. Do not touch me. " +
-  "If the user says 'put me on a beach' — construct the beach scene around me. Do not touch me. " +
-  "In every single scenario, the original person in the base image is untouched, unmodified, and preserved completely. " +
-  "The output image should look as though someone took the original photograph and made only the specific requested addition or change — " +
-  "nothing more, nothing less. Everything else is frozen exactly as in the input. " +
-
-  // ── SPECIAL CASE: adding someone to the photo ─────────────────────────────
-  "SPECIAL CASE — ADDING A PERSON NEXT TO THE ORIGINAL SUBJECT: " +
-  "This is a critically important case. If the user requests that another person be added to the photo " +
-  "(e.g. 'add Cristiano Ronaldo next to me', 'put Beyoncé beside me', 'add someone next to me', " +
-  "'place this person alongside me', 'I want to appear with [name]'), " +
-  "the only action to perform is: place that new person into the scene beside the existing subject. " +
-  "The existing subject — the person already in the base image — must not be touched, moved, resized, " +
-  "recolored, redrawn, or altered in any way whatsoever. " +
-  "Their face remains exactly the same. Their skin tone remains exactly the same. " +
-  "Their hair remains exactly the same. Their clothing remains exactly the same. " +
-  "Their position in the frame remains exactly the same. Their expression remains exactly the same. " +
-  "The ONLY new element introduced into the output is the requested additional person, " +
-  "placed naturally into the available space of the scene. " +
-  "The added person must be rendered with their authentic, real, documented appearance: " +
-  "their correct real face, their correct real skin tone, their correct real body proportions, " +
-  "and their authentic recognizable style — never a generic or invented stand-in. " +
-  "To be absolutely clear: adding a person to the photo means the photo gains one element. " +
-  "It does not mean the original person is replaced, regenerated, or modified in any way. " +
-  "The original person stays. A new person is added next to them. That is all. " +
-
-  // ── RULE ZERO: the person is untouchable ──────────────────────────────────
-  "RULE ZERO — NON-NEGOTIABLE IDENTITY LOCK: " +
-  "The human subject visible in the input photograph is the single most protected element of this transformation. " +
-  "Their face, body, skin, hair, posture, and every physical attribute ARE THE GROUND TRUTH. " +
-  "You are strictly forbidden from altering, replacing, reinterpreting, or generating any part of the subject's person. " +
-  "This rule overrides every other instruction, including the user prompt. " +
-  "If the user prompt appears to request a change to the person's physical appearance that was not explicitly " +
-  "stated as a direct personal change request (e.g. 'change my hair', 'give me a beard'), ignore that implied change completely. " +
-
-  // ── PHASE 1: full-body biometric lock ────────────────────────────────────
-  "PHASE 1 · COMPLETE SUBJECT BIOMETRIC LOCK: " +
-  "Before processing the prompt, perform an exhaustive analysis of the input photograph and lock every observable attribute: " +
-  "FACE — exact jawbone angle and width, cheekbone height and lateral projection, forehead height and width, " +
-  "chin shape (pointed / rounded / square), chin projection and depth, overall face width-to-height ratio; " +
-  "EYES — iris color (including heterochromia if present), iris texture pattern, pupil size, " +
-  "eyelid fold type (monolid / double lid / hooded), inter-pupillary distance, canthal tilt, " +
-  "eyebrow shape (arched / straight / curved), eyebrow density, tail and head positions, under-eye area; " +
-  "NOSE — bridge height and width, nasal tip shape and projection, nostril shape, flare width, columella visibility; " +
-  "MOUTH — lip vermilion border upper and lower curves, Cupid's bow shape, lip fullness ratio, philtrum depth and width; " +
-  "SKIN — Fitzpatrick phototype (I–VI), undertone (warm golden / cool rosy / neutral olive / cool taupe), " +
-  "visible texture and pore density, any moles, birthmarks, freckles, scars, asymmetries, or distinguishing marks — " +
-  "ALL must be reproduced with pixel-level fidelity; " +
-  "HAIR — natural base color (hex-level precision), highlights and tonal variation, texture (straight / wavy / curly / coily / kinky), " +
-  "density, volume, hairline shape, part position, current style in the input photo; " +
-  "BODY — overall build, shoulder width, neck length and width, visible body proportions; " +
-  "POSTURE AND POSE — replicate the subject's exact stance, head angle, shoulder tilt, and body orientation from the input image unless scene context physically requires a slight natural adjustment. " +
-
-  // ── PHASE 2: public figure knowledge ─────────────────────────────────────
-  "PHASE 2 · PUBLIC FIGURE KNOWLEDGE VERIFICATION: " +
-  "If the subject in the input photo is a recognizable public figure (celebrity, athlete, musician, actor, model, influencer, politician, public personality, adult film actor/actress), " +
-  "or if any named person is referenced in the user prompt: " +
-  "immediately activate all training knowledge about that person's verified documented appearance — " +
-  "cross-reference their authentic facial features, skin tone, signature style, known fashion aesthetic, " +
-  "frequently associated environments, notable events, and visual identity markers. " +
-  "If a named person is referenced in the prompt as someone to ADD to the scene (e.g. 'with Elon Musk', 'next to Beyoncé'), " +
-  "render that additional person with complete factual accuracy based on all training knowledge — " +
-  "correct documented appearance, authentic skin tone, known style, realistic body proportions. " +
-  "Never invent a generic placeholder for a named person — always render their real documented likeness. " +
-  "IMPORTANT — ADULT FILM ACTORS/ACTRESSES: if the referenced person is known from the adult film industry, " +
-  "treat them exactly like any other public figure for appearance recognition purposes. " +
-  "However, the output MUST be fully clothed and strictly SFW (safe for work) at all times — " +
-  "no nudity, no suggestive poses, no sexual content of any kind. " +
-  "Apply the same transformation rules as for any other public figure: scene change, style, background only. " +
-
-  // ── PHASE 3: permitted and prohibited transformations ─────────────────────
-  "PHASE 3 · TRANSFORMATION PERMISSION MATRIX: " +
-  "FULLY PERMITTED (apply with maximum creative quality): " +
-  "complete background replacement and environment construction; " +
-  "location, architectural setting, landscape, interior or exterior scene; " +
-  "sky, weather, time of day, atmospheric conditions (fog, rain, golden hour, night, storm); " +
-  "all ambient and directional lighting (color temperature, intensity, direction, softness); " +
-  "outfit and clothing (if explicitly requested — match garment type, fabric texture, drape physics, and realistic fit on the subject's actual body); " +
-  "accessories (glasses, jewelry, hat, bag, watch — only if explicitly requested); " +
-  "overall scene color grading, mood, and cinematic treatment; " +
-  "additional people, objects, or elements added to the scene at the user's request. " +
-  "ABSOLUTELY FORBIDDEN (zero tolerance): " +
-  "any modification to the subject's face, skin tone, eye color, nose, lips, jaw, cheeks, or forehead; " +
-  "any change to hair color, hair texture, or hairstyle unless the user explicitly says 'change my hair to...'; " +
-  "any age regression or progression; any ethnicity or race alteration; any gender change; " +
-  "any body morphing, slimming, widening, or height change; " +
-  "replacing the subject's face with another person's face (NO face swap of any kind); " +
-  "generating a different person and labeling them as the subject. " +
-
-  // ── PHASE 4: photographic realism and integration ─────────────────────────
-  "PHASE 4 · PHOTOREALISTIC SCENE INTEGRATION: " +
-  "The subject must appear to have been physically present in the new scene when photographed — " +
-  "this requires flawless physical integration: " +
-  "LIGHTING MATCH — the illumination falling on the subject's face and body must precisely replicate the scene's light sources: " +
-  "match direction (angle of key light), color temperature (warm candlelight 2700K vs cool overcast 6500K vs golden sunset 3200K), " +
-  "intensity falloff, fill light ratio, and specular highlights on skin and hair; " +
-  "SHADOW ACCURACY — cast shadows from the subject onto the environment must obey the scene's light geometry; " +
-  "ambient occlusion at contact points (feet on ground, hands on surfaces) must be present; " +
-  "DEPTH OF FIELD — apply realistic bokeh blur to background elements at the appropriate focal plane for the scene depth; " +
-  "the subject should remain in sharp focus while distant scene elements naturally fall off; " +
-  "SKIN PHYSICS — preserve subsurface light scattering on the subject's skin; no over-smoothing, no wax-skin effect, " +
-  "no over-sharpening halos; maintain natural pore texture at the image's native resolution; " +
-  "HAIR PHYSICS — individual strand separation, realistic light transmission through hair, " +
-  "natural flyaways, correct light interaction (rim light on hair matching scene key light direction); " +
-  "COLOR SCIENCE — subject's skin tones must integrate with the scene's color temperature naturally; " +
-  "avoid color spill anomalies, magenta fringes, or unnatural desaturation of the subject vs scene; " +
-  "ENVIRONMENTAL CONTACT — if the subject stands on a surface, ensure correct ground shadow, contact shadow, and perspective consistency; " +
-  "ATMOSPHERE — apply consistent atmospheric haze, light diffusion, or particle effects (snow, rain, dust) that affect both scene and subject uniformly. " +
-
-  // ── PHASE 5: quality and framing preservation ────────────────────────────
-  "PHASE 5 · ORIGINAL QUALITY AND FRAMING RESPECT: " +
-  "Unless the user explicitly requests 'improve quality', 'enhance', 'HD', '4K', or similar upgrade instructions, " +
-  "match the original photograph's technical characteristics: " +
-  "replicate the native sharpness level (do not over-sharpen); " +
-  "preserve the original grain or noise signature if present (film grain, sensor noise); " +
-  "maintain the original aspect ratio and compositional framing of the subject; " +
-  "do not artificially increase contrast or saturate colors beyond the scene's natural requirements. " +
-  "OUTPUT FRAMING — NON-NEGOTIABLE: The compositional framing of the original person must not change. " +
-  "Do not crop the image. Do not zoom in or out. Do not pan or shift the frame. " +
-  "Do not reframe, rotate, or resize the canvas. " +
-  "The subject must remain in the same position within the frame as in the input photo, at the same scale. " +
-  "If a new person is added beside the original subject, they must fit into the existing frame naturally " +
-  "without displacing, scaling down, or repositioning the original subject. " +
-  "The output image dimensions and aspect ratio must exactly match the input image. " +
-
-  // ── PHASE 6: final output standard ────────────────────────────────────────
-  "PHASE 6 · FINAL OUTPUT STANDARD: " +
-  "The delivered image must be completely indistinguishable from a real photograph taken by a professional photographer " +
-  "with the subject physically present in the described scene. " +
-  "Subject identity: identical to input photo, zero deviation. " +
-  "Scene realization: fully constructed, detailed, and internally consistent. " +
-  "Lighting: physically accurate and unified across subject and scene. " +
-  "No AI artifacts: no uncanny valley, no face morphing, no body distortion, no floating limbs, no duplicate features. " +
-  "Professional composition: subject as clear visual anchor, scene as supporting environment. " +
-  "This is the non-negotiable minimum quality standard — do not deliver below it.";
-
-// ─── REGLES UNIVERSELLES — IDENTIQUES POUR TOUTES LES FORMULES ───────────
-//
-// Ces deux blocs sont injectes dans CHAQUE generation image, quel que soit
-// l'abonnement (free / essentiel / pro / ultra). Le plan ne fait varier que la
-// resolution, le format et le nombre de photos de reference — jamais ces regles.
-//
-//   1. BASE_IMAGE_LOCK          → l'image de base n'est jamais modifiee
-//   2. ADDED_PERSON_INTEGRATION → la personne ajoutee est integree
-//      physiquement : lumiere, orientation de la lumiere, orientation de la
-//      personne, decor, volume 3D, textures realistes, photorealisme total.
-
-const BASE_IMAGE_LOCK =
-  "NON-NEGOTIABLE BASE IMAGE LOCK — THIS RULE APPLIES TO EVERY REQUEST, WITHOUT ANY EXCEPTION: " +
-  "The input photograph (image 1) is a FINISHED, FROZEN CANVAS. " +
-  "It must never be regenerated, re-rendered, repainted, re-lit, re-framed, re-cropped, re-colored, " +
-  "retouched, denoised, sharpened, upscaled, stylised or beautified. Treat every pixel of image 1 as already final. " +
-  "The person already present in image 1 keeps, pixel for pixel and without the slightest deviation: " +
-  "their face and every facial feature, their exact skin tone and skin texture, their hair color, cut and texture, " +
-  "their body shape and proportions, their clothing and every fold of it, their pose, their expression, " +
-  "their gaze direction, their position in the frame and their scale in the frame. " +
-  "The existing background, decor, furniture, objects, colors, exposure, white balance, contrast, grain " +
-  "and depth of field of image 1 also stay exactly as they are, unless the user explicitly asked for the scene to change. " +
-  "You are performing an ADDITION, never a re-creation: the output must read as the ORIGINAL photograph " +
-  "with only the requested element inserted into it, and strictly nothing else changed. " +
-  "If you cannot insert the requested element without touching the original, insert it into the free space of the frame — " +
-  "never by modifying, moving, shrinking, rotating or redrawing what is already there. " +
-  "This lock is independent of the requested quality, resolution or subscription plan: it is always in force. ";
-
-const ADDED_PERSON_INTEGRATION =
-  "ADDED PERSON — PHYSICAL INTEGRATION SPECIFICATION (mandatory, applies to every request without exception): " +
-  "The added person must look as if they were really standing there, at that exact spot and that exact moment, " +
-  "photographed by the same camera, in the same light, as the original subject. " +
-
-  "STEP A · READ THE LIGHT OF IMAGE 1 FIRST. " +
-  "Before rendering anything, analyse the lighting of the base photo: " +
-  "locate the key light in 3D (left or right, front or back, above or below, near or far), " +
-  "measure its color temperature (warm tungsten or candle, neutral daylight, cool shade or overcast, golden hour, night ambient), " +
-  "its hardness (hard direct sun with crisp shadow edges versus soft diffused light with gradual falloff), " +
-  "the fill-light ratio, the color and direction of bounce light, and any rim, back or practical light in the scene. " +
-
-  "STEP B · MATCH THAT LIGHT EXACTLY ON THE ADDED PERSON. " +
-  "The highlights must fall on the SAME side of their face and body as they do on the original subject; " +
-  "the shaded side must be the SAME side, with the same shadow density, the same edge softness, " +
-  "the same color temperature and the same white balance. " +
-  "Never light the added person from the opposite direction. Never put studio lighting on someone standing in a dim room, " +
-  "and never put flat ambient light on someone standing in hard directional sunlight. " +
-  "Specular highlights on their skin, hair and clothes must point back to the scene's real light sources. " +
-
-  "STEP C · SHADOWS AND GROUND CONTACT. " +
-  "Cast their shadow onto the floor and onto nearby surfaces following the same light geometry as the shadows already " +
-  "visible in image 1: same direction, same length, same softness, same opacity, same color. " +
-  "Add contact shadow and ambient occlusion where their feet meet the ground and wherever they come close to the " +
-  "original subject or to scene elements. No floating person, no missing shadow, no shadow going the wrong way. " +
-
-  "STEP D · ORIENTATION, POSE AND PERSPECTIVE. " +
-  "Place them on the SAME ground plane as the original subject, consistent with the camera axis of image 1: " +
-  "same horizon line, same eye level, same vanishing lines, same focal length and same lens distortion. " +
-  "Their body orientation, shoulder line, head angle and gaze must be coherent with that camera — " +
-  "if the original subject faces the camera, the added person faces the camera too, unless the user asked otherwise. " +
-  "Their pose must read as a natural, relaxed, believable photograph pose beside the original subject, " +
-  "with plausible weight distribution, arm placement and spacing between the two people. " +
-
-  "STEP E · SCALE AND DEPTH. " +
-  "Their height and body scale must be correct relative to the original subject and to the decor " +
-  "(doorways, furniture, vehicles, horizon), and must respect perspective foreshortening at their depth in the scene. " +
-  "Render them at the same focus plane and the same depth of field as the original subject: " +
-  "identical sharpness or identical bokeh, never sharper, never softer. " +
-
-  "STEP F · DECOR COHERENCE. " +
-  "They must belong to the existing decor: same environment, same atmosphere and haze, " +
-  "reflections of their body in any nearby glass, water, mirror or polished metal, " +
-  "environmental color spill from the decor onto their skin and clothing, " +
-  "and the same particles (rain, snow, dust, smoke, sand) crossing their silhouette. " +
-  "They occupy the free space of the scene — never floating, never awkwardly clipped by the frame edge, " +
-  "never overlapping or hiding the original subject's face or body. " +
-
-  "STEP G · TRUE 3D VOLUME. " +
-  "Render them as a real three-dimensional human being, never as a flat cut-out, sticker, paste-in or 2D layer: " +
-  "correct volumetric shading across the whole form, believable form shadows and core shadows, " +
-  "correct self-occlusion between their limbs, torso and head, correct occlusion with the scene, " +
-  "natural silhouette edges carrying real edge light — no hard cut-out outline, no halo, no glow, " +
-  "no visible compositing seam, no artificial drop shadow, no resolution mismatch at their border. " +
-
-  "STEP H · REALISTIC TEXTURE. " +
-  "Photographic skin with visible pores, fine vellus hair, subsurface scattering, natural specular highlights " +
-  "on forehead, nose bridge and cheekbones, and realistic micro-imperfections — " +
-  "never plastic, never waxy, never airbrushed, never over-smoothed, never AI-glossy. " +
-  "Hair rendered strand by strand, with light transmitting through it and natural flyaways. " +
-  "Fabric with real weave, weight, drape, wrinkles and stitching. " +
-  "Correct micro-detail on eyes (wet catchlight matching the scene's actual light source), teeth, nails, jewelry and skin folds. " +
-
-  "STEP I · CAMERA MATCH. " +
-  "Match the original photograph's resolution, sharpness level, grain or sensor-noise signature, chromatic behaviour " +
-  "and compression character. The added person must never look cleaner, sharper, brighter or higher-resolution " +
-  "than the rest of the photograph — that mismatch is the most common giveaway and is forbidden. " +
-
-  "STEP J · FINAL VERIFICATION BEFORE DELIVERY. " +
-  "The result must be indistinguishable from a real photograph of these people standing together. " +
-  "Verify one by one: light direction matches, shadow direction and softness match, color temperature matches, " +
-  "scale is plausible, perspective and eye level align, depth of field matches, texture and grain match, " +
-  "and the original subject is still 100% untouched. " +
-  "If any of these checks fails, correct it before delivering the image. ";
-
-// Detecte une demande d'ajout de personne meme quand le nom n'est pas dans la
-// base de celebrites (« ajoute quelqu'un a cote de moi », « avec mon frere »...).
-// Sert a appliquer ADDED_PERSON_INTEGRATION dans tous les cas, pour tous les plans.
-const PERSON_ADDITION_RE = new RegExp(
-  [
-    "\\bajoute[rz]?\\s+(?:une?\\s+|le\\s+|la\\s+|l')?(?:personne|homme|femme|mec|gars|fille|ami|amie|copain|copine|acteur|actrice|chanteur|chanteuse|joueur|joueuse|rappeur|rappeuse|mod[eè]le|c[eé]l[eé]brit[eé])",
-    "\\badd\\s+(?:a\\s+|an\\s+|the\\s+)?(?:person|man|woman|guy|girl|friend|celebrity|someone)",
-    "(?:^|[^\\w])[aà]\\s*c[oô]t[eé]\\s+de\\s+(?:moi|nous)\\b",
-    "\\bnext\\s+to\\s+(?:me|us)\\b",
-    "\\bbeside\\s+(?:me|us)\\b",
-    "\\balongside\\s+(?:me|us)\\b",
-    "\\bc[oô]te\\s*[aà]\\s*c[oô]te\\b",
-    "\\bside\\s+by\\s+side\\b",
-    "\\bpose\\s*-?\\s*(?:toi|moi)\\s+avec\\b",
-    "\\bavec\\s+(?:mon|ma|mes)\\s+\\w+",
-    "\\bdeuxi[eè]me\\s+personne\\b",
-    "\\bsur\\s+la\\s+photo\\s+avec\\b",
-  ].join("|"),
-  "i",
-);
-
-function isPersonAdditionRequest(text: string): boolean {
-  return PERSON_ADDITION_RE.test(text ?? "");
-}
-
-// ─── PROMPT BUILDER ───────────────────────────────────────────────────────────
-//
-// For img2img: the person comes FROM the image — prompt describes the
-// target scene/style only. No person description needed.
-
-function buildStylePrompt(
-  customPrompt:    string,
-  stylePrompt:     string,
-  renderStyle?:    string,
-  intensity?:      string,
-  preserveOutfit?: boolean,
-  celebRefCount?:  number,
-  resolvedPersons?: ResolvedPerson[],
-): { positive: string; negative: string } {
-  const translated = translateToEnglish(customPrompt.trim());
-  const style      = stylePrompt.trim();
-  const renderDesc = RENDER_STYLE_PROMPTS[renderStyle ?? ""] ?? "";
-  const outfitRule = preserveOutfit
-    ? " Keep the person's current clothing and outfit completely unchanged."
-    : "";
-  const renderRule   = renderDesc ? ` Render style: ${renderDesc}.` : "";
-  const intensityPfx: Record<string, string> = {
-    light:  "Subtly and minimally:",
-    strong: "Boldly and dramatically:",
-  };
-  const prefix      = intensityPfx[intensity ?? ""] ?? "";
-  const hasRefImages = (celebRefCount ?? 0) > 0;
-
-  // ── Personnes a ajouter ─────────────────────────────────────────────────
-  // Priorite aux personnes deja resolues par la route (base locale + recherche
-  // en ligne). Repli sur la detection locale seule si rien n'a ete transmis.
-  const dbCelebs: ResolvedPerson[] = findAllCelebrities(customPrompt + " " + stylePrompt)
-    .map((c) => ({
-      name:               c.name,
-      visual_description: c.visual_description,
-      source:             "db" as const,
-    }));
-
-  const celebs: ResolvedPerson[] =
-    resolvedPersons && resolvedPersons.length > 0 ? resolvedPersons : dbCelebs;
-
-  // Ajout d'une personne demande ? (celebrite reconnue OU formulation du type
-  // « ajoute X a cote de moi »). Independant du plan : la meme detection et les
-  // memes regles d'integration s'appliquent en free, essentiel, pro et ultra.
-  const isPersonAddition =
-    celebs.length > 0
-    || isPersonAdditionRequest(customPrompt)
-    || isPersonAdditionRequest(translated)
-    || isPersonAdditionRequest(style);
-
-  let editInstruction: string;
-
-  // Exigence de rendu commune aux deux branches ci-dessous (avec ou sans photos
-  // de reference), donc identique quel que soit l'abonnement de l'utilisateur.
-  const ADD_REALISM_LINE =
-    "Integrate them physically into the existing photo: same light direction and light color as image 1, " +
-    "matching shadows on the ground, same camera angle, eye level and perspective, correct height and scale, " +
-    "body and gaze orientation coherent with the original subject and the camera, " +
-    "full three-dimensional volume (never a flat cut-out), and photorealistic skin, hair and fabric texture. ";
-
-  // Traçabilite : quand la personne vient d'une recherche en ligne, on le dit
-  // explicitement au modele et on cite les sources, pour qu'il s'appuie sur ces
-  // donnees verifiees plutot que sur une invention.
-  const webPersons = celebs.filter((c) => c.source === "web");
-  const RESEARCH_NOTE = webPersons.length > 0
-    ? `VERIFIED ONLINE RESEARCH — the following identity data was retrieved online just now, ` +
-      `specifically for this request, because ${webPersons.map((c) => c.name).join(" and ")} ` +
-      `${webPersons.length === 1 ? "is" : "are"} not a widely documented public figure. ` +
-      `Treat it as factual ground truth about the real person and reproduce that exact likeness. ` +
-      `Sources consulted: ${webPersons.flatMap((c) => c.sources ?? []).slice(0, 6).join(", ") || "encyclopedic and press sources"}. ` +
-      `Do not substitute a look-alike, a more famous person with a similar name, or an invented face. `
-    : "";
-
-  if (celebs.length > 0) {
-    const celebNames = celebs.map((c) => c.name).join(" and ");
-
-    const sceneExtra = [translated, style]
-      .filter(Boolean)
-      .map((s) => s.replace(new RegExp(celebs.map((c) => c.name).join("|"), "gi"), "").trim())
-      .filter(Boolean)
-      .join(", ");
-
-    if (hasRefImages) {
-      // ── CELEBRITY INSERTION — VISUAL ANALYSIS MODE ──────────────────────
-      // Reference images of the celebrity are in image_input[1], [2], [3]...
-      // Nano-banana-pro (Gemini-based) can visually analyse multiple images.
-      // The prompt tells it: study the reference photos, then reproduce that
-      // person's appearance accurately in the scene.
-      // The text description is also provided as a cross-check to catch cases
-      // where the reference photos alone are insufficient.
-      const n = celebRefCount!;
-      const imgWord = n === 1 ? "image" : "images";
-      const celebDescBlock = celebs
-        .map((c) => `[${c.name.toUpperCase()}] ${c.visual_description}`)
-        .join(" | ");
-
-      editInstruction =
-        RESEARCH_NOTE +
-        `You are given ${n + 1} images. ` +
-        `Image 1 is the MAIN PHOTO — this is the user's photo and must remain 100% unchanged. ` +
-        `${n === 1 ? "Image 2 is" : `Images 2 to ${n + 1} are`} real reference ${imgWord} of ${celebNames} — ` +
-        `these are provided ONLY as visual identity references for rendering ${celebNames} accurately. ` +
-
-        `STEP 1 — VISUAL ANALYSIS: Study the reference ${imgWord} of ${celebNames} carefully. ` +
-        `Identify and memorise: ` +
-        `their exact face shape and features (jawline, nose, eyes, eyebrows, lips, forehead), ` +
-        `their precise skin tone and texture, ` +
-        `their hair (exact color, cut, texture, style), ` +
-        `their body type and proportions, ` +
-        `any visible tattoos, scars or distinctive marks, ` +
-        `their signature clothing style and aesthetic. ` +
-
-        `STEP 2 — GENERATION: Add ${celebNames} to image 1 as a new person standing naturally beside the existing subject. ` +
-        `Reproduce ${celebNames}'s appearance EXACTLY as observed in the reference ${imgWord} — ` +
-        `same face, same skin tone, same hair, same body. ` +
-        `Do NOT invent generic features. ` +
-        `Use what you see in the reference ${imgWord} as primary truth. ` +
-
-        `STEP 3 — IDENTITY CROSS-CHECK: Verify that the rendered ${celebNames} also matches ` +
-        `their documented known appearance: ${celebDescBlock}. ` +
-        `The rendered person must be consistent with both the reference photos and this description. ` +
-        `If there is any conflict, trust the reference photos. ` +
-        `Never render a generic or placeholder face — always the real person. ` +
-
-        `STEP 4 — PHYSICAL INTEGRATION: ${ADD_REALISM_LINE}` +
-
-        `${sceneExtra ? `Scene context: ${sceneExtra}. ` : ""}` +
-        `The original person in image 1 stays 100% unchanged, pixel-perfect. ` +
-        `The base image itself stays unchanged: same background, same decor, same framing, same colors, same light. ` +
-        `Do not alter, resize, reposition, or redraw the person from image 1 in any way. ` +
-        `The ONLY difference between image 1 and your output is the presence of ${celebNames}.`;
-
-    } else {
-      // ── CELEBRITY INSERTION — DESCRIPTION-GUIDED (no reference photos) ──
-      const celebDataBlock = celebs.map((c) =>
-        `[${c.name.toUpperCase()}] ${c.visual_description}`,
-      ).join(" | ");
-
-      editInstruction =
-        RESEARCH_NOTE +
-        `TASK — ADD ${celebNames.toUpperCase()} TO THIS PHOTO: ` +
-        `Insert ${celebNames} as a new person standing naturally beside the original subject. ` +
-        `CELEBRITY APPEARANCE (use this as your rendering specification): ${celebDataBlock}. ` +
-        `Render ${celebNames} using their authentic, real, documented face — ` +
-        `draw on all training knowledge of this public figure combined with the description above. ` +
-        `Do NOT invent a generic face. Do NOT use a placeholder. Render the real person. ` +
-        `PHYSICAL INTEGRATION: ${ADD_REALISM_LINE}` +
-        `${sceneExtra ? `Scene: ${sceneExtra}. ` : ""}` +
-        `The original person in this photo stays 100% unchanged — ` +
-        `do not alter, resize, reposition, or redraw them in any way. ` +
-        `The base image itself stays unchanged: same background, same decor, same framing, same colors, same light. ` +
-        `The ONLY difference between the input photo and your output is the presence of ${celebNames}.`;
-    }
-  } else {
-    // ── STANDARD STYLE / SCENE TRANSFORMATION ───────────────────────────
-    const sceneDesc = [translated, style].filter(Boolean).join(", ")
-      || "professional portrait with perfect lighting";
-    editInstruction = [prefix, sceneDesc].filter(Boolean).join(" ").trim()
-      || "Enhance the photo quality and lighting.";
-  }
-
-  // Ordre volontaire (identique pour TOUTES les formules) :
-  //   1. verrou absolu sur l'image de base
-  //   2. la tache demandee par l'utilisateur
-  //   3. la specification d'integration physique de la personne ajoutee
-  //   4. le contrat systeme complet
-  const positive =
-    BASE_IMAGE_LOCK +
-    `TASK — ${editInstruction}.${renderRule}${outfitRule} ` +
-    (isPersonAddition ? ADDED_PERSON_INTEGRATION : "") +
-    HIDDEN_SYSTEM_CONTEXT;
-
-  return { positive, negative: NEG };
 }
 
 // ─── VIDEO PROMPT BUILDER (Seedance 2.0) ─────────────────────────────────────
@@ -705,7 +242,7 @@ function intensityToStrength(intensity?: string): number {
 //
 // La résolution de SORTIE dépend de l'intensité choisie (et non plus seulement
 // du plan), afin de réduire le coût des rendus doux. Le modèle de génération
-// (google/nano-banana-pro) ne change pas : seul le paramètre `resolution` varie.
+// (google/nano-banana-2) ne change pas : seul le paramètre `resolution` varie.
 //
 //   light / moderate (Légère / Modérée) → plafonnée à 2K, jamais 4K → moins cher
 //   strong / ultra   (Intense / Ultra)  → 4K
@@ -908,9 +445,11 @@ async function createPred(
 ): Promise<{ id: string }> {
   const colonIdx = spec.lastIndexOf(":");
   if (colonIdx > 5 && spec.length - colonIdx > 20) {
-    return replicate.predictions.create({ version: spec.substring(colonIdx + 1), input });
+    return withRetry(() => replicate.predictions.create({ version: spec.substring(colonIdx + 1), input }), 3);
   }
-  return replicate.predictions.create({ model: spec, input });
+  // withRetry : attend et reessaie sur 429 (Replicate limite a 6 creations/min
+  // quand le compte a moins de 5 $ de credit).
+  return withRetry(() => replicate.predictions.create({ model: spec, input }), 3);
 }
 
 export function buildAsyncJobConfig(
@@ -942,32 +481,19 @@ export function buildAsyncJobConfig(
     };
   }
 
-  // ── nano-banana-pro (style / scene transformation) ───────────────────────
-  const qs       = QUALITY_SETTINGS[tier];
-  const maxRefs  = qs.maxRefImages;
-
-  // Clip celeb reference images to the tier's allowed maximum
-  const clippedRefUrls  = (input.celebRefImageUrls ?? []).slice(0, maxRefs);
-  const clippedRefCount = Math.min(input.celebRefCount ?? 0, maxRefs);
-
-  // buildStylePrompt applique BASE_IMAGE_LOCK + ADDED_PERSON_INTEGRATION a
-  // toutes les generations, quel que soit `tier` : aucune regle n'est retiree
-  // pour les formules moins cheres.
-  const { positive, negative } = buildStylePrompt(
-    input.customPrompt ?? "",
-    input.stylePrompt  ?? "",
-    input.renderStyle,
-    input.transformIntensity,
-    input.preserveOutfit ?? false,
-    clippedRefCount,
-    input.resolvedPersons,
-  );
+  // ── nano-banana-2 (style / scene transformation) ───────────────────────
+  // Envoi BRUT : le modele recoit uniquement la photo de l utilisateur et le
+  // texte qu il a saisi, exactement comme dans le playground Nano Banana 2.
+  // Aucun prompt interne (verrou, integration, contrat systeme, traduction),
+  // aucune photo de reference ajoutee.
+  const qs = QUALITY_SETTINGS[tier];
+  const rawPrompt = (input.customPrompt ?? "").trim() || (input.stylePrompt ?? "").trim();
 
   return {
     mode:               "style",
     qualityTier:        tier,
-    prompt:             positive,
-    negPrompt:          negative,
+    prompt:             rawPrompt,
+    negPrompt:          "",
     inputImageUrl:      input.inputImageUrl,
     strength:           intensityToStrength(input.transformIntensity),
     modelIndex:         0,
@@ -975,9 +501,9 @@ export function buildAsyncJobConfig(
     outputFormat:       qs.format,
     allowFallback:      qs.allowFallback,
     aspectRatio:        input.aspectRatio,
-    celebRefImageUrl:   clippedRefUrls[0],
-    celebRefImageUrls:  clippedRefUrls,
-    celebRefCount:      clippedRefCount,
+    celebRefImageUrl:   undefined,
+    celebRefImageUrls:  [],
+    celebRefCount:      0,
   };
 }
 
@@ -1052,7 +578,7 @@ export async function startAsyncJob(
     model.spec,
     model.buildInput(
       config.prompt       ?? "",
-      config.negPrompt    ?? NEG,
+      config.negPrompt    ?? "",
       imageData,
       config.strength     ?? 0.62,
       config.resolution,
