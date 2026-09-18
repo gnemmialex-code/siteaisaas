@@ -1,4 +1,6 @@
 import Replicate from "replicate";
+import { findAllCelebrities } from "@/lib/celebrity-db";
+import { extractPersonNames } from "@/lib/person-lookup";
 
 const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN!,
@@ -256,6 +258,86 @@ function intensityToResolution(_tierResolution: string, intensity?: string): str
   }
 }
 
+// ─── AJOUT DE PERSONNE : édition locale de la photo ──────────────────────────
+//
+// Envoyé brut, « Met moi à côté de Omar Sy » est compris par le modèle comme
+// « crée une photo de moi avec Omar Sy » : il régénère toute la scène (décor,
+// lumière, et même la personne d'origine). Quand la demande consiste à AJOUTER
+// quelqu'un, on complète le texte de l'utilisateur par une consigne d'édition
+// courte : seule la personne demandée est insérée, le reste reste identique.
+
+// Déclencheurs qui désignent forcément une personne à placer dans la photo.
+const PERSON_POSITION_RE =
+  /(?:[àa]\s*c[ôo]t[ée]\s+(?:de|d['’])|aux?\s+c[ôo]t[ée]s\s+(?:de|d['’])|pr[èe]s\s+(?:de|d['’])|en\s+compagnie\s+(?:de|d['’])|dans\s+les\s+bras\s+(?:de|d['’])|pose\s*(?:[-–]\s*)?(?:moi|toi|nous)?\s*avec|next\s+to|beside|alongside|together\s+with|standing\s+with|posing\s+with)\s+\S/iu;
+
+// Personne générique demandée sans nom (« ajoute quelqu'un », « une femme »…).
+const GENERIC_PERSON_RE =
+  /\b(?:ajoute[rz]?|rajoute[rz]?|add|met[sz]?|place[rz]?)\b[^.,;!?]{0,20}\b(?:quelqu['’]un|une?\s+(?:personne|homme|femme|ami|amie|gar[çc]on|fille|enfant|b[ée]b[ée]|mec)|someone|a\s+(?:person|man|woman|friend|boy|girl|child))\b/iu;
+
+// Le prompt demande explicitement de changer le lieu / décor.
+const SCENE_CHANGE_RE =
+  /\b(?:fond|d[ée]cor|arri[èe]re[-\s]plan|background|sc[èe]ne|scene|lieu|plage|beach|montagne|mountain|for[êe]t|forest|ville|city|studio|désert|desert|espace|transporte|emm[èe]ne|t[ée]l[ée]porte)\b/iu;
+
+const TRIGGER_WORD_RE = /\b(?:avec|with|ajoute[rz]?|rajoute[rz]?|add)\b/iu;
+
+/** Noms des personnes à ajouter, ou `null` si le prompt n'ajoute personne. */
+function detectAddedPersons(prompt: string): string[] | null {
+  const dbPersons = findAllCelebrities(prompt)
+    .filter((c) => c.category !== "luxury_watch")
+    .map((c) => c.name);
+  if (dbPersons.length > 0) return dbPersons;
+
+  // Nom propre (majuscule) après « avec / ajoute / add… » : « avec Léna Situations ».
+  const named = TRIGGER_WORD_RE.test(prompt)
+    ? extractPersonNames(prompt).filter((n) => /^\p{Lu}/u.test(n))
+    : [];
+  if (named.length > 0) return named.slice(0, 1);
+
+  if (GENERIC_PERSON_RE.test(prompt)) return [];
+
+  if (PERSON_POSITION_RE.test(prompt)) {
+    // Personne demandée sans nom exploitable (« à côté de omar sy » en minuscules).
+    const loose = extractPersonNames(prompt);
+    return loose.slice(0, 1);
+  }
+  return null;
+}
+
+function buildAddPersonPrompt(userPrompt: string, persons: string[]): string {
+  const who = persons.length > 0 ? persons.join(" and ") : "the requested person";
+  const changeScene = SCENE_CHANGE_RE.test(userPrompt);
+
+  const keep = changeScene
+    ? "Change the setting only as the request explicitly describes. "
+    : "Keep the rest of the photo exactly as it is: same background and decor, same objects, " +
+      "same lighting and colours, same framing, camera angle and crop. Do not regenerate, " +
+      "restyle or move the scene. ";
+
+  return (
+    `${userPrompt}\n\n` +
+    `This is a local edit of the provided photo, not a new image. ` +
+    `Add only ${who} into the existing photo. ` +
+    keep +
+    "The person already in the photo must stay unchanged: same face and identity, skin tone, " +
+    "hair, expression, pose, clothing, size and position. " +
+    `Render ${who} with their real, recognizable face, body shape and skin tone, ` +
+    "photographed by the same camera at the same moment, like an unedited professional photo:\n" +
+    "- Placement: in the free space next to the existing person, feet on the same ground plane, " +
+    "realistic height and scale relative to them, natural spacing, correct overlap and occlusion with nearby objects.\n" +
+    "- Perspective: same camera height, eye level, vanishing lines, lens focal length and distortion; " +
+    "body and head angled coherently with the scene, naturally facing the camera.\n" +
+    "- Light: same light direction, softness, intensity and colour temperature as the original subject, " +
+    "matching highlights and reflections on skin, hair and clothes.\n" +
+    "- Shadows: cast shadow on the ground and nearby surfaces pointing in the same direction and with the same " +
+    "length and softness as the existing shadows, plus contact shadows under the feet and ambient occlusion where bodies touch.\n" +
+    "- Camera look: same depth of field and focus plane, same sharpness, noise/grain, white balance, " +
+    "colour grading and compression as the rest of the photo.\n" +
+    "- Details: natural relaxed pose and expression, anatomically correct hands and body, " +
+    "realistic skin texture and hair strands, clean edges with no halo, cutout or pasted look.\n" +
+    "The final image must look like a real photograph where both people were actually standing together."
+  );
+}
+
 // ─── FRENCH → ENGLISH TRANSLATOR ─────────────────────────────────────────────
 
 function translateToEnglish(text: string): string {
@@ -481,15 +563,18 @@ export function buildAsyncJobConfig(
   // ── nano-banana-2 (style / scene transformation) ───────────────────────
   // Envoi BRUT : le modele recoit uniquement la photo de l utilisateur et le
   // texte qu il a saisi, exactement comme dans le playground Nano Banana 2.
-  // Aucun prompt interne (verrou, integration, contrat systeme, traduction),
-  // aucune photo de reference ajoutee.
+  // Aucune photo de reference ajoutee. Seule exception au texte brut : l'ajout
+  // d'une personne, complete par une consigne d'edition locale (voir
+  // buildAddPersonPrompt) pour ne pas regenerer le decor ni la personne d'origine.
   const qs = QUALITY_SETTINGS[tier];
   const rawPrompt = (input.customPrompt ?? "").trim() || (input.stylePrompt ?? "").trim();
+  const addedPersons = detectAddedPersons(rawPrompt);
+  const prompt = addedPersons ? buildAddPersonPrompt(rawPrompt, addedPersons) : rawPrompt;
 
   return {
     mode:               "style",
     qualityTier:        tier,
-    prompt:             rawPrompt,
+    prompt,
     negPrompt:          "",
     inputImageUrl:      input.inputImageUrl,
     strength:           intensityToStrength(input.transformIntensity),
